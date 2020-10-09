@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@700&display=swap');
+
+.DieView {
+  border: 1px solid black;
+  border-radius: 3px;
+  display: block;
+  width: 2em;
+  line-height: 2em;
+  text-align: center;
+  min-width: 2em;
+
+  --dieColor1: #3b679e;
+  --dieColor2: #2b88d9;
+  --dieColor3: #207cca;
+  --dieColor4: #7db9e8;
+
+  background: var(--dieColor); /* Old browsers */
+  background: -moz-linear-gradient(-45deg,  var(--dieColor1) 0%, var(--dieColor2) 50%,  var(--dieColor3) 51%, var(--dieColor4) 100%); /* FF3.6-15 */
+  background: -webkit-linear-gradient(-45deg,  var(--dieColor1) 0%, var(--dieColor2) 50%, var(--dieColor3) 51%, var(--dieColor4) 100%); /* Chrome10-25,Safari5.1-6 */
+  background: linear-gradient(135deg,  var(--dieColor1) 0%, var(--dieColor2) 50%, var(--dieColor3) 51%, var(--dieColor4) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+
+  font-family: 'Work Sans', sans-serif;
+  color: rgba(255,255,255, 0.9);
+}
+
+.DieView.exploding {
+  --dieColor1: #de0000;
+  --dieColor2: #aa4444;
+  --dieColor3: #aa2222;
+  --dieColor4: #cf0000;
+}
+
+.DiceTray {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: flex-start;
+  align-items: center;
+  min-height: 2em;
+
+  border-radius: 6px;
+  background: rgba(10,10,10,0.8);
+  padding: 1em 1em 0.5em 1em;
+}
+
+.DiceTray .DieView {
+  margin-right: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.DiceTray .Math {
+  font-family: 'Work Sans', sans-serif;
+  color: white;
+  display: block;
+  font-size: 1.3em;
+  margin-bottom: 0.5em;
+}
+
+.Ledger {
+  margin-top: 2em;
+}
+
+.Ledger ul {
+  list-style: none;
+  padding: 0;
+}
+
+.Ledger li {
+  margin-bottom: 2em;
+}
+
+.Roller {
+  padding: 2em;
+}
