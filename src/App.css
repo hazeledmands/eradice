@@ -30,6 +30,10 @@
   --dieColor4: #cf0000;
 }
 
+.DieView.cancelled {
+  opacity: 0.5;
+}
+
 .DiceTray {
   display: flex;
   flex-flow: row wrap;

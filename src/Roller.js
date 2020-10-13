@@ -18,11 +18,7 @@ class Ledger extends React.Component {
 class DiceTray extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      dice: props.dice,
-      totalFaces: 0,
-      stoppedDiceCount: 0
-    };
+    this.state = {dice: props.dice};
   }
 
   componentDidUpdate(oldProps, oldState) {
@@ -30,36 +26,62 @@ class DiceTray extends React.Component {
   }
 
   render() {
+    const isComplete = this.state.dice.every(die => !die.isRolling);
+    const totalFaces = this.state.dice
+      .filter(die => !die.isRolling && !die.isCancelled)
+      .reduce((acc, die) => die.number + acc, 0);
+
     const mathText = [];
-    if (this.state.isComplete && this.state.dice.length > 1) mathText.push(`= ${this.state.totalFaces}`);
+    if (isComplete && this.state.dice.length > 1) mathText.push(`= ${totalFaces}`);
     if (this.props.modifier > 0) mathText.push(`+ ${this.props.modifier}`);
-    if (this.state.isComplete && this.props.modifier > 0) mathText.push(`= ${this.props.modifier + this.state.totalFaces}`)
+    if (isComplete && this.props.modifier > 0) mathText.push(`= ${this.props.modifier + totalFaces}`)
+
     return <div className="DiceTray">
       {this.state.dice.map(die => <Die key={die.id} {...die} onStopped={(number) => this.onDieStopped(die, number)} />)}
       <div className="Math">{mathText.join(' ')}</div>
     </div>
   }
 
-  onDieStopped(die, number) {
-    const didExplode = die.isExploding && number === 6; 
+  onDieStopped(stoppedDie, number) {
+    const didExplodeSucceed = stoppedDie.canExplodeSucceed && number === 6; 
+    const didExplodeFail = stoppedDie.canExplodeFail && number === 1;
 
-    if (didExplode) {
+    let dice = this.state.dice.map(d => {
+      if (d !== stoppedDie) return d;
+      return {...d, number, isRolling: false, isCancelled: didExplodeFail};
+    });
+
+    if (didExplodeSucceed) {
       const newDie = {
         id: this.state.dice.length,
         isRolling: true,
         isExploding: true,
+        canExplodeSucceed: true,
+        canExplodeFail: false,
         stopAfter: generateRollDuration()
       };
-      this.setState({dice: [...this.state.dice, newDie]});
+      dice = [...dice, newDie];
     }
 
-    const stoppedDiceCount = this.state.stoppedDiceCount + 1;
-    const isComplete = !didExplode && stoppedDiceCount === this.state.dice.length;
-    this.setState({
-      stoppedDiceCount,
-      isComplete,
-      totalFaces: this.state.totalFaces + number,
-    });
+    const isComplete = dice.every(d => !d.isRolling);
+    if (isComplete) {
+      const failures = dice.filter(d => d.canExplodeFail && d.number === 1).length;
+
+      dice
+        .filter(d => !d.isExploding)
+        .sort((a, b) => b.number - a.number)
+        .filter((d, i) => i < failures)
+        .forEach(cancelDie => {
+          dice = dice.map(d => {
+            if (d !== cancelDie) return d;
+            return {...d, isCancelled: true};
+          })
+        });
+
+      if (failures > 0) debugger;
+    }
+
+    this.setState({dice});
   }
 }
 
@@ -110,6 +132,7 @@ class Die extends React.Component {
   render() {
     let className = "DieView";
     if (this.props.isExploding) className += ' exploding';
+    if (this.props.isCancelled) className += ' cancelled';
     return <div className={className}>
       {this.state.number}
     </div>
@@ -149,10 +172,13 @@ class Roller extends React.Component {
 
       const dice = [];
       for (let i = 0; i < diceCount; ++i) {
+        const isExploding = i === diceCount - 1;
         dice.push({
           id: i,
           isRolling: true,
-          isExploding: i === diceCount - 1,
+          isExploding,
+          canExplodeSucceed: isExploding,
+          canExplodeFail: isExploding,
         });
       }
 
