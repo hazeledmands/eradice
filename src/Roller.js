@@ -77,8 +77,6 @@ class DiceTray extends React.Component {
             return {...d, isCancelled: true};
           })
         });
-
-      if (failures > 0) debugger;
     }
 
     this.setState({dice});
