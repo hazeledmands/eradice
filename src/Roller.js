@@ -1,4 +1,5 @@
 import React from 'react';
+import * as Random from 'random-js';
 
 class Ledger extends React.Component {
   render() {
@@ -213,7 +214,7 @@ function generateRollDuration() {
 }
 
 function generateRandomFace(sides = 6) {
-  return Math.floor(Math.random() * sides) + 1;
+  return Random.die(sides)(Random.browserCrypto);
 }
 
 export default Roller;
