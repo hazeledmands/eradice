@@ -3,13 +3,55 @@ import * as Random from 'random-js';
 import styles from '../styles/App.module.css';
 
 class Ledger extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { completedRolls: {} };
+    this.onRollComplete = this.onRollComplete.bind(this);
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.rolls !== this.props.rolls) {
+      // Initialize tracking for new rolls
+      const newRolls = this.props.rolls.filter(roll => 
+        !this.state.completedRolls[roll.id]
+      );
+      newRolls.forEach(roll => {
+        this.setState(prevState => ({
+          completedRolls: {
+            ...prevState.completedRolls,
+            [roll.id]: false
+          }
+        }));
+      });
+    }
+  }
+
+  onRollComplete(rollId, completedDice) {
+    this.setState(prevState => ({
+      completedRolls: {
+        ...prevState.completedRolls,
+        [rollId]: true
+      }
+    }));
+    
+    // Update the parent's roll with completed dice
+    if (this.props.onRollComplete) {
+      this.props.onRollComplete(rollId, completedDice);
+    }
+  }
+
   render() {
     return <div className={styles.Ledger}>
       <ul>
         {this.props.rolls.map(roll => (
           <li key={roll.id}>
             <span className={styles.text}>{roll.text}</span>
-            <DiceTray dice={roll.dice} modifier={roll.modifier} />
+            <DiceTray 
+              dice={roll.dice} 
+              modifier={roll.modifier}
+              rollId={roll.id}
+              onRollComplete={this.onRollComplete}
+            />
           </li>
         ))}
       </ul>
@@ -20,11 +62,20 @@ class Ledger extends React.Component {
 class DiceTray extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {dice: props.dice};
+    this.state = {dice: props.dice, hasReportedComplete: false};
   }
 
   componentDidUpdate(oldProps, oldState) {
-    if (oldProps.dice !== this.props.dice) this.setState({dice: this.props.dice});
+    if (oldProps.dice !== this.props.dice) {
+      this.setState({dice: this.props.dice, hasReportedComplete: false});
+    }
+    
+    // Report completion when all dice finish rolling
+    const isComplete = this.state.dice.every(die => !die.isRolling);
+    if (isComplete && !this.state.hasReportedComplete && this.props.onRollComplete) {
+      this.setState({ hasReportedComplete: true });
+      this.props.onRollComplete(this.props.rollId, this.state.dice);
+    }
   }
 
   render() {
@@ -145,6 +196,52 @@ class Roller extends React.Component {
     this.state = {rolls: [], text: '', dice: [], isReleased: false};
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
+    this.saveRollsToSessionStorage = this.saveRollsToSessionStorage.bind(this);
+    this.loadRollsFromSessionStorage = this.loadRollsFromSessionStorage.bind(this);
+  }
+
+  componentDidMount() {
+    this.loadRollsFromSessionStorage();
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.rolls !== this.state.rolls) {
+      this.saveRollsToSessionStorage();
+    }
+  }
+
+  loadRollsFromSessionStorage() {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const savedRolls = sessionStorage.getItem('diceRolls');
+        if (savedRolls) {
+          const parsedRolls = JSON.parse(savedRolls);
+          // Only load rolls with completed dice (no rolling dice)
+          const completedRolls = parsedRolls.filter(roll => 
+            roll.dice && roll.dice.every(die => !die.isRolling)
+          );
+          if (completedRolls.length > 0) {
+            this.setState({ rolls: completedRolls });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading rolls from sessionStorage:', error);
+    }
+  }
+
+  saveRollsToSessionStorage() {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        // Only save completed rolls (no dice still rolling)
+        const completedRolls = this.state.rolls.filter(roll =>
+          roll.dice && roll.dice.every(die => !die.isRolling)
+        );
+        sessionStorage.setItem('diceRolls', JSON.stringify(completedRolls));
+      }
+    } catch (error) {
+      console.error('Error saving rolls to sessionStorage:', error);
+    }
   }
 
   render() {
@@ -166,7 +263,7 @@ class Roller extends React.Component {
 
       <DiceTray dice={this.state.dice} />
 
-      <Ledger rolls={this.state.rolls} />
+      <Ledger rolls={this.state.rolls} onRollComplete={this.handleRollComplete} />
     </div>
   }
 
@@ -215,6 +312,16 @@ class Roller extends React.Component {
       text: '',
       dice: [],
       rolls: [newRoll, ...state.rolls],
+    }));
+  }
+
+  handleRollComplete = (rollId, completedDice) => {
+    this.setState(state => ({
+      rolls: state.rolls.map(roll => 
+        roll.id === rollId 
+          ? { ...roll, dice: completedDice }
+          : roll
+      )
     }));
   }
 }
