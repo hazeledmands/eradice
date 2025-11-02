@@ -150,7 +150,12 @@ class Roller extends React.Component {
     return <div className="Roller">
       <form onSubmit={this.handleSubmit}>
         <label htmlFor='dice-selector'>What would you like to roll?</label>
-        <input id='dice-selector' onChange={this.handleChange} value={this.state.text} />
+        <input 
+          id='dice-selector' 
+          onChange={this.handleChange} 
+          value={this.state.text}
+          placeholder="e.g., 3d+2"
+        />
         <button type="submit">Roll!</button>
       </form>
 
