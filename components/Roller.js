@@ -194,6 +194,7 @@ class Roller extends React.Component {
   constructor(props) {
     super(props);
     this.state = {rolls: [], text: '', dice: [], isReleased: false};
+    this.inputRef = React.createRef();
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
     this.saveRollsToSessionStorage = this.saveRollsToSessionStorage.bind(this);
@@ -202,6 +203,10 @@ class Roller extends React.Component {
 
   componentDidMount() {
     this.loadRollsFromSessionStorage();
+    // Auto-focus the input when the page loads
+    if (this.inputRef.current) {
+      this.inputRef.current.focus();
+    }
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -252,6 +257,7 @@ class Roller extends React.Component {
           <span className={styles.prompt}>$</span>
           <input 
             id='dice-selector' 
+            ref={this.inputRef}
             onChange={this.handleChange} 
             value={this.state.text}
             placeholder=" 3d+2"
