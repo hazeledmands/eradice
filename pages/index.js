@@ -1,4 +1,4 @@
-import Roller from '../components/Roller'
+import Roller from '../components/Roller/Roller'
 
 export default function Home() {
   return (

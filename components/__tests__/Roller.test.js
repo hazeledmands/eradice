@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import Roller from '../Roller';
+import Roller from '../Roller/Roller';
 
 describe('Roller UI Test', () => {
   it('should roll dice multiple times and display results', async () => {
