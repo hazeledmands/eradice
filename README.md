@@ -1,70 +1,119 @@
 [![Netlify Status](https://api.netlify.com/api/v1/badges/cceb37a8-0728-4c72-a6d0-ad27c1d4468d/deploy-status)](https://app.netlify.com/sites/eradice/deploys)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Eradice - Dice Roller
 
-## Available Scripts
+A modern dice roller application built with Next.js and React. Roll dice with custom modifiers and watch them animate in real-time with beautiful visual effects.
 
-In the project directory, you can run:
+## Features
 
-### `yarn start`
+- 🎲 Roll multiple dice at once (e.g., "3d+2")
+- ✨ Animated dice rolling with smooth transitions
+- 🔥 Exploding dice mechanics
+- 📊 Roll history ledger
+- 🎨 Modern UI with glassmorphism effects
+- 📱 Responsive design for mobile and desktop
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Tech Stack
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+- **Next.js 14** - React framework for production
+- **React 18** - UI library
+- **CSS Modules** - Scoped styling
+- **random-js** - Cryptographically secure random number generation
 
-### `yarn test`
+## Getting Started
 
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Prerequisites
 
-### `yarn build`
+- Node.js 18.17 or later
+- Yarn or npm
 
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Installation
 
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
+1. Clone the repository:
+```bash
+git clone https://github.com/hazeledmands/eradice.git
+cd eradice
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+2. Install dependencies:
+```bash
+yarn install
+```
 
-### `yarn eject`
+### Development
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Run the development server:
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+yarn dev
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+
+### Build
+
+Build the application for production:
+
+```bash
+yarn build
+```
+
+This creates an optimized production build in the `.next` folder.
+
+### Start Production Server
+
+Start the production server locally:
+
+```bash
+yarn start
+```
+
+Runs the production build locally on [http://localhost:3000](http://localhost:3000).
+
+### Lint
+
+Run ESLint to check for code issues:
+
+```bash
+yarn lint
+```
+
+## Usage
+
+Enter dice notation in the input field:
+- `3d` - Roll 3 dice
+- `3d+2` - Roll 3 dice and add 2 to the result
+- The last die is an exploding die that can trigger additional rolls
+
+## Project Structure
+
+```
+eradice/
+├── components/          # React components
+│   └── Roller.js       # Main dice roller component
+├── pages/              # Next.js pages
+│   ├── _app.js        # App wrapper with global styles
+│   └── index.js       # Home page
+├── styles/             # CSS files
+│   ├── globals.css    # Global styles
+│   └── App.module.css # Component styles (CSS modules)
+├── public/             # Static assets
+└── next.config.js      # Next.js configuration
+```
 
 ## Learn More
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API
+- [React Documentation](https://react.dev) - learn about React
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Deployment
 
-### Code Splitting
+The easiest way to deploy your Next.js app is to use [Vercel](https://vercel.com), the platform created by the Next.js team:
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/hazeledmands/eradice)
 
-### Analyzing the Bundle Size
+Or deploy to [Netlify](https://netlify.com) using the Netlify button or CLI.
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
-
-### Making a Progressive Web App
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
-
-### Advanced Configuration
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
-
-### Deployment
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
-
-### `yarn build` fails to minify
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+Check out the [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
