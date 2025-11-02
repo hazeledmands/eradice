@@ -69,22 +69,17 @@ class Ledger extends React.Component {
     const totalFaces = activeDice.reduce((acc, val) => acc + val, 0);
     
     // Build the copy text with individual dice results
-    let copyText = `${roll.text}:`;
+    let copyText = `${roll.text} =`;
     
-    // Add individual dice values - show all dice, mark cancelled ones
+    // Add individual dice values - show all dice in square brackets, mark cancelled ones
     if (allCompletedDice.length > 0) {
       const diceParts = allCompletedDice.map(die => {
         if (die.isCancelled) {
-          return `${die.number}(cancelled)`;
+          return `[${die.number}-canceled]`;
         }
-        return die.number.toString();
+        return `[${die.number}]`;
       });
-      copyText += ` ${diceParts.join(' + ')}`;
-    }
-    
-    // Add intermediate total if multiple active dice
-    if (activeDice.length > 1) {
-      copyText += ` = ${totalFaces}`;
+      copyText += ` ${diceParts.join(' ')}`;
     }
     
     // Add modifier if present
@@ -128,13 +123,22 @@ class Ledger extends React.Component {
               <div className={styles.rollHeader}>
                 <span className={styles.text}>{roll.text}</span>
                 {isComplete && result !== null && (
-                  <button 
-                    className={styles.copyButton}
-                    onClick={() => this.handleCopy(roll)}
-                    title="Copy to clipboard"
-                  >
-                    Copy
-                  </button>
+                  <div className={styles.buttonGroup}>
+                    <button 
+                      className={styles.rerollButton}
+                      onClick={() => this.props.onReroll && this.props.onReroll(roll.id)}
+                      title="Reroll dice"
+                    >
+                      Reroll
+                    </button>
+                    <button 
+                      className={styles.copyButton}
+                      onClick={() => this.handleCopy(roll)}
+                      title="Copy to clipboard"
+                    >
+                      Copy
+                    </button>
+                  </div>
                 )}
               </div>
               <DiceTray 
@@ -363,7 +367,11 @@ class Roller extends React.Component {
 
       {this.state.text && <DiceTray dice={this.state.dice} />}
 
-      <Ledger rolls={this.state.rolls} onRollComplete={this.handleRollComplete} />
+      <Ledger 
+        rolls={this.state.rolls} 
+        onRollComplete={this.handleRollComplete}
+        onReroll={this.handleReroll}
+      />
     </div>
   }
 
@@ -421,6 +429,43 @@ class Roller extends React.Component {
         roll.id === rollId 
           ? { ...roll, dice: completedDice }
           : roll
+      )
+    }));
+  }
+
+  handleReroll = (rollId) => {
+    const roll = this.state.rolls.find(r => r.id === rollId);
+    if (!roll) return;
+
+    // Parse the roll text to get dice count and modifier
+    const parser = /(?<dice>\d+)\s*d\s*(\+\s*(?<modifier>\d+))?/i;
+    const result = parser.exec(roll.text);
+    
+    if (!result) return;
+
+    const diceCount = parseInt(result.groups.dice);
+    const modifier = (result.groups.modifier == null) ? 0 : parseInt(result.groups.modifier);
+
+    // Create new dice for reroll
+    const newDice = [];
+    for (let i = 0; i < diceCount; ++i) {
+      const isExploding = i === diceCount - 1;
+      newDice.push({
+        id: i,
+        isRolling: true,
+        isExploding,
+        canExplodeSucceed: isExploding,
+        canExplodeFail: isExploding,
+        stopAfter: generateRollDuration(),
+      });
+    }
+
+    // Update the roll with new dice
+    this.setState(state => ({
+      rolls: state.rolls.map(r => 
+        r.id === rollId 
+          ? { ...r, dice: newDice }
+          : r
       )
     }));
   }

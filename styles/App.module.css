@@ -269,6 +269,64 @@
     inset 0 0 10px rgba(0, 255, 170, 0.08);
 }
 
+.buttonGroup {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.rerollButton {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #220011 0%, #440033 50%, #220011 100%);
+  background-size: 200% 200%;
+  color: #ff00ff;
+  border: 1px solid #ff00ff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 
+    0 0 10px rgba(255, 0, 255, 0.3),
+    inset 0 0 10px rgba(255, 0, 255, 0.05);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(255, 0, 255, 0.6);
+  animation: button-shimmer 3s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.rerollButton::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 0, 255, 0.2), transparent);
+  transform: rotate(45deg);
+  animation: button-sweep 3s ease-in-out infinite;
+}
+
+.rerollButton:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 
+    0 0 20px rgba(255, 0, 255, 0.6),
+    inset 0 0 15px rgba(255, 0, 255, 0.1);
+  border-color: #ff88ff;
+  color: #ff88ff;
+  text-shadow: 0 0 12px rgba(255, 136, 255, 0.8);
+}
+
+.rerollButton:active {
+  transform: translateY(0) scale(1);
+  box-shadow: 
+    0 0 15px rgba(255, 0, 255, 0.4),
+    inset 0 0 10px rgba(255, 0, 255, 0.08);
+}
+
 .Roller {
   background: rgba(5, 10, 20, 0.8);
   border-radius: 12px;
@@ -506,6 +564,15 @@
   .copyButton {
     font-size: 0.7rem;
     padding: 0.4rem 0.75rem;
+  }
+
+  .rerollButton {
+    font-size: 0.7rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .buttonGroup {
+    gap: 0.4rem;
   }
 
   .rollHeader {
