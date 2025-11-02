@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Work+Sans:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;900&family=Share+Tech+Mono&display=swap');
 
 .App {
   width: 100%;
@@ -6,8 +6,8 @@
 }
 
 .DieView {
-  border: none;
-  border-radius: 12px;
+  border: 2px solid #00ffff;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -17,55 +17,90 @@
   min-width: 3.5rem;
   font-size: 1.5rem;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3),
-              0 2px 4px rgba(0, 0, 0, 0.2),
-              inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.3s ease;
+  box-shadow: 
+    0 0 10px rgba(0, 255, 255, 0.5),
+    0 0 20px rgba(0, 255, 255, 0.3),
+    inset 0 0 10px rgba(0, 255, 255, 0.2),
+    0 4px 15px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+  position: relative;
+  background: linear-gradient(135deg, #001122 0%, #003344 50%, #001122 100%);
+  background-size: 200% 200%;
+  animation: shimmer 3s ease-in-out infinite;
 
-  --dieColor1: #4facfe;
-  --dieColor2: #00f2fe;
-  --dieColor3: #2b88d9;
-  --dieColor4: #5b9bd5;
+  --neon-cyan: #00ffff;
+  --neon-magenta: #ff00ff;
+  --neon-green: #00ff41;
 
-  background: linear-gradient(135deg, var(--dieColor1) 0%, var(--dieColor2) 50%, var(--dieColor3) 51%, var(--dieColor4) 100%);
+  font-family: 'Orbitron', monospace;
+  color: #00ffff;
+  text-shadow: 
+    0 0 10px #00ffff,
+    0 0 20px #00ffff,
+    0 0 30px #00ffff;
+}
 
-  font-family: 'Work Sans', sans-serif;
-  color: rgba(255, 255, 255, 0.95);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+@keyframes shimmer {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 .DieView:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4),
-              0 3px 6px rgba(0, 0, 0, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 
+    0 0 20px rgba(0, 255, 255, 0.8),
+    0 0 40px rgba(0, 255, 255, 0.6),
+    inset 0 0 15px rgba(0, 255, 255, 0.3),
+    0 6px 25px rgba(0, 0, 0, 0.7);
+  border-color: #00ffaa;
 }
 
 .DieView.exploding {
-  --dieColor1: #fa709a;
-  --dieColor2: #fee140;
-  --dieColor3: #ff6b6b;
-  --dieColor4: #ff8e8e;
-  animation: pulse-glow 1.5s ease-in-out infinite;
+  border-color: #ff00ff;
+  background: linear-gradient(135deg, #220011 0%, #440033 50%, #220011 100%);
+  background-size: 200% 200%;
+  animation: pulse-glow-cyber 1s ease-in-out infinite, shimmer 2s ease-in-out infinite;
+  color: #ff00ff;
+  text-shadow: 
+    0 0 10px #ff00ff,
+    0 0 20px #ff00ff,
+    0 0 30px #ff00ff,
+    0 0 40px #ff00ff;
 }
 
-@keyframes pulse-glow {
+@keyframes pulse-glow-cyber {
   0%, 100% {
-    box-shadow: 0 4px 12px rgba(250, 112, 154, 0.5),
-                0 2px 4px rgba(0, 0, 0, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    box-shadow: 
+      0 0 15px rgba(255, 0, 255, 0.6),
+      0 0 30px rgba(255, 0, 255, 0.4),
+      inset 0 0 10px rgba(255, 0, 255, 0.2),
+      0 4px 15px rgba(0, 0, 0, 0.5);
+    transform: scale(1);
   }
   50% {
-    box-shadow: 0 6px 20px rgba(250, 112, 154, 0.8),
-                0 4px 8px rgba(255, 107, 107, 0.4),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    box-shadow: 
+      0 0 25px rgba(255, 0, 255, 1),
+      0 0 50px rgba(255, 0, 255, 0.8),
+      inset 0 0 20px rgba(255, 0, 255, 0.4),
+      0 6px 25px rgba(0, 0, 0, 0.7);
+    transform: scale(1.05);
   }
 }
 
 .DieView.cancelled {
-  opacity: 0.4;
-  filter: grayscale(80%);
-  transform: scale(0.95);
+  opacity: 0.3;
+  filter: grayscale(100%) brightness(0.3);
+  transform: scale(0.9);
+  border-color: #666;
+  box-shadow: 
+    0 0 5px rgba(100, 100, 100, 0.2),
+    inset 0 0 5px rgba(0, 0, 0, 0.5);
+  text-shadow: none;
+  color: #666;
 }
 
 .DiceTray {
@@ -76,25 +111,57 @@
   gap: 0.75rem;
   min-height: 4rem;
 
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  background: rgba(0, 20, 30, 0.6);
+  backdrop-filter: blur(5px);
   padding: 1.5rem;
   margin: 1.5rem 0;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 2px solid #00ffff;
+  box-shadow: 
+    0 0 20px rgba(0, 255, 255, 0.3),
+    inset 0 0 20px rgba(0, 255, 255, 0.05),
+    0 8px 32px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.DiceTray::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 8px;
+  background: linear-gradient(45deg, #00ffff, #ff00ff, #00ffff);
+  background-size: 200% 200%;
+  animation: border-glow 3s ease infinite;
+  z-index: -1;
+  opacity: 0.5;
+  filter: blur(8px);
+}
+
+@keyframes border-glow {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 .Math {
-  font-family: 'Inter', sans-serif;
-  color: white;
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  color: #00ffaa;
   display: block;
   font-size: 1.4rem;
   font-weight: 600;
   margin-top: 0.75rem;
   width: 100%;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  letter-spacing: 0.5px;
+  text-shadow: 
+    0 0 10px #00ffaa,
+    0 0 20px #00ffaa;
+  letter-spacing: 2px;
+  font-weight: 700;
 }
 
 .Ledger {
@@ -109,37 +176,71 @@
 
 .Ledger :global(li) {
   margin-bottom: 1.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
+  background: rgba(0, 30, 40, 0.5);
+  backdrop-filter: blur(5px);
+  border-radius: 8px;
   padding: 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  box-shadow: 
+    0 0 15px rgba(0, 255, 255, 0.2),
+    inset 0 0 15px rgba(0, 255, 255, 0.05),
+    0 4px 16px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+  position: relative;
 }
 
 .Ledger :global(li:hover) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-3px);
+  border-color: rgba(0, 255, 255, 0.6);
+  box-shadow: 
+    0 0 25px rgba(0, 255, 255, 0.4),
+    inset 0 0 20px rgba(0, 255, 255, 0.1),
+    0 8px 25px rgba(0, 0, 0, 0.7);
 }
 
 .text {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.95rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  color: #00ffff;
   display: block;
   margin-bottom: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
 }
 
 .Roller {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 24px;
+  background: rgba(5, 10, 20, 0.8);
+  border-radius: 12px;
   padding: 2.5rem;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 
+    0 0 30px rgba(0, 255, 255, 0.3),
+    inset 0 0 30px rgba(0, 255, 255, 0.05),
+    0 20px 60px rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(10px);
+  border: 2px solid rgba(0, 255, 255, 0.4);
+  position: relative;
+}
+
+.Roller::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00ffff, transparent);
+  animation: scanline 3s linear infinite;
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .Roller :global(form) {
@@ -149,69 +250,167 @@
 }
 
 .Roller :global(label) {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Rajdhani', sans-serif;
   font-size: 1.1rem;
-  font-weight: 600;
-  color: #2d3748;
+  font-weight: 700;
+  color: #00ffff;
   margin-bottom: 0.5rem;
   display: block;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
 }
 
-.Roller :global(input[type="text"]) {
-  font-family: 'Inter', sans-serif;
-  font-size: 1rem;
+.terminalInput {
+  display: flex;
+  align-items: center;
+  border: 2px solid rgba(0, 255, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(0, 10, 20, 0.9);
   padding: 0.875rem 1.25rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  background: white;
-  color: #2d3748;
-  transition: all 0.2s ease;
-  width: 100%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 
+    0 0 10px rgba(0, 255, 255, 0.2),
+    inset 0 0 10px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+  position: relative;
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
 }
 
-.Roller :global(input[type="text"]:focus) {
+.terminalInput:focus-within {
+  border-color: #00ffff;
+  box-shadow: 
+    0 0 20px rgba(0, 255, 255, 0.6),
+    inset 0 0 15px rgba(0, 255, 255, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.5);
+  background: rgba(0, 20, 30, 0.95);
+}
+
+.prompt {
+  color: #00ffaa;
+  font-weight: 700;
+  margin-right: 0.5rem;
+  font-size: 1rem;
+  text-shadow: 0 0 8px rgba(0, 255, 170, 0.8);
+  user-select: none;
+  letter-spacing: 0;
+}
+
+.terminalInputField {
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 1rem;
+  background: transparent;
+  border: none;
+  color: #00ffaa;
+  flex: 1;
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1), 0 4px 8px rgba(0, 0, 0, 0.1);
+  letter-spacing: 1px;
+  padding: 0;
+  caret-color: #00ffaa;
+  caret-width: 2px;
 }
 
-.Roller :global(input[type="text"]::placeholder) {
-  color: #a0aec0;
+.terminalInputField::placeholder {
+  color: rgba(0, 255, 255, 0.3);
+  letter-spacing: 1px;
+}
+
+.terminalInputField::selection {
+  background: rgba(0, 255, 255, 0.3);
+  color: #00ffaa;
+}
+
+/* Ensure the input has proper terminal styling when focused */
+.terminalInput:focus-within .terminalInputField {
+  caret-color: #00ffaa;
+  text-shadow: 0 0 8px rgba(0, 255, 170, 0.6);
+}
+
+/* Add a subtle glow effect when typing */
+@supports (caret-shape: block) {
+  .terminalInputField {
+    caret-shape: block;
+  }
 }
 
 .Roller :global(button[type="submit"]) {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Rajdhani', sans-serif;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   padding: 0.875rem 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 12px;
+  background: linear-gradient(135deg, #001122 0%, #003344 50%, #001122 100%);
+  background-size: 200% 200%;
+  color: #00ffff;
+  border: 2px solid #00ffff;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 
+    0 0 15px rgba(0, 255, 255, 0.5),
+    inset 0 0 15px rgba(0, 255, 255, 0.1);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   align-self: flex-start;
   margin-top: 0.5rem;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+  animation: button-shimmer 3s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.Roller :global(button[type="submit"]::before) {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+  transform: rotate(45deg);
+  animation: button-sweep 3s ease-in-out infinite;
+}
+
+@keyframes button-shimmer {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes button-sweep {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
 }
 
 .Roller :global(button[type="submit"]:hover) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 
+    0 0 25px rgba(0, 255, 255, 0.8),
+    inset 0 0 20px rgba(0, 255, 255, 0.2);
+  border-color: #00ffaa;
+  color: #00ffaa;
+  text-shadow: 0 0 15px rgba(0, 255, 170, 0.8);
 }
 
 .Roller :global(button[type="submit"]:active) {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 
+    0 0 20px rgba(0, 255, 255, 0.6),
+    inset 0 0 15px rgba(0, 255, 255, 0.15);
 }
 
 .Roller :global(button[type="submit"]:disabled) {
-  opacity: 0.6;
+  opacity: 0.4;
   cursor: not-allowed;
   transform: none;
+  border-color: #666;
+  color: #666;
+  text-shadow: none;
 }
 
 @media (max-width: 768px) {

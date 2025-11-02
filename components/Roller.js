@@ -151,12 +151,16 @@ class Roller extends React.Component {
     return <div className={styles.Roller}>
       <form onSubmit={this.handleSubmit}>
         <label htmlFor='dice-selector'>What would you like to roll?</label>
-        <input 
-          id='dice-selector' 
-          onChange={this.handleChange} 
-          value={this.state.text}
-          placeholder="e.g., 3d+2"
-        />
+        <div className={styles.terminalInput}>
+          <span className={styles.prompt}>$</span>
+          <input 
+            id='dice-selector' 
+            onChange={this.handleChange} 
+            value={this.state.text}
+            placeholder=" 3d+2"
+            className={styles.terminalInputField}
+          />
+        </div>
         <button type="submit">Roll!</button>
       </form>
 
