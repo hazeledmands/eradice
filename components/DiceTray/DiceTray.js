@@ -11,6 +11,8 @@ export default function DiceTray({
   dice: initialDice, 
   modifier,
   rollId,
+  onDieStopped,
+  onDiceUpdate,
   onRollComplete 
 }) {
   const [dice, setDice] = useState(initialDice);
@@ -32,6 +34,11 @@ export default function DiceTray({
   }, [dice, hasReportedComplete, onRollComplete, rollId]);
 
   const handleDieStopped = useCallback((dieId) => {
+    // Notify parent (Ledger) that this die has stopped
+    if (onDieStopped) {
+      onDieStopped(dieId);
+    }
+
     setDice(prevDice => {
       const stoppedDie = prevDice.find(d => d.id === dieId);
       if (!stoppedDie) return prevDice;
@@ -45,14 +52,15 @@ export default function DiceTray({
 
       let updatedDice = prevDice.map(d => {
         if (d.id !== dieId) return d;
-        return { ...d, isRolling: false, isCancelled: didExplodeFail };
+        // Note: isRolling state is controlled by Ledger, don't set it here
+        return { ...d, isCancelled: didExplodeFail };
       });
 
       // Add exploding die if success
       if (didExplodeSucceed) {
         const newDie = {
           id: Math.max(...prevDice.map(d => d.id), -1) + 1,
-          isRolling: true,
+          isRolling: false, // Ledger will control this
           isExploding: true,
           canExplodeSucceed: true,
           canExplodeFail: false,
@@ -60,6 +68,10 @@ export default function DiceTray({
           stopAfter: generateRollDuration(),
         };
         updatedDice = [...updatedDice, newDie];
+        // Notify parent about the dice update so Ledger can control the new die
+        if (onDiceUpdate) {
+          onDiceUpdate(rollId, updatedDice);
+        }
       }
 
       // Check if all dice are complete to apply cancellation logic
@@ -84,8 +96,9 @@ export default function DiceTray({
 
       return updatedDice;
     });
-  }, []);
+  }, [onDieStopped]);
 
+  // isRolling is now controlled by Ledger via props
   const isComplete = dice.every(die => !die.isRolling);
   // Use finalNumber for calculations (available immediately, not waiting for animation)
   // Can calculate result even while dice are still animating

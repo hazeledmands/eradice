@@ -4,116 +4,127 @@ import { DICE_UPDATE_INTERVAL } from '../../constants/dice';
 import styles from './Die.module.css';
 
 /**
- * Individual die component with rolling animation
- * The finalNumber is pre-calculated immediately, and animation is purely visual
+ * Dumb die component - just animates when rolling, shows value when done
+ * All state control is handled by the parent (Ledger)
  */
 export default function Die({ 
   id, 
   finalNumber, 
-  isRolling: initialIsRolling, 
+  isRolling, 
   stopAfter,
   isExploding, 
   isCancelled,
   onStopped 
 }) {
-  // Display number - starts as random for animation, resolves to finalNumber when done
-  const [displayNumber, setDisplayNumber] = useState(generateRandomFace());
-  const [isRolling, setIsRolling] = useState(initialIsRolling);
+  // Display number - random during animation, finalNumber when stopped
+  const [displayNumber, setDisplayNumber] = useState(finalNumber ?? generateRandomFace());
   const startTsRef = useRef(null);
   const lastUpdateTsRef = useRef(null);
   const timerRef = useRef(null);
-  const stopAfterRef = useRef(stopAfter);
-  const onStoppedRef = useRef(onStopped);
-  const hasStoppedRef = useRef(false);
-  const currentDisplayNumberRef = useRef(displayNumber);
-  const finalNumberRef = useRef(finalNumber);
+  const hasCalledStoppedRef = useRef(false);
+  const displayNumberRef = useRef(displayNumber);
 
-  // Update refs when props change
+  // Update display number ref
   useEffect(() => {
-    stopAfterRef.current = stopAfter;
-    onStoppedRef.current = onStopped;
-    finalNumberRef.current = finalNumber;
-  }, [stopAfter, onStopped, finalNumber]);
-
-  // Update current display number ref
-  useEffect(() => {
-    currentDisplayNumberRef.current = displayNumber;
+    displayNumberRef.current = displayNumber;
   }, [displayNumber]);
 
-  // When finalNumber changes (e.g., on reroll), update display if not rolling
+  // When not rolling, show finalNumber
   useEffect(() => {
     if (!isRolling && finalNumber != null) {
       setDisplayNumber(finalNumber);
     }
-  }, [finalNumber, isRolling]);
+  }, [isRolling, finalNumber]);
 
+  // Reset stopped flag when starting a new roll
   useEffect(() => {
-    if (isRolling && stopAfter) {
-      hasStoppedRef.current = false;
-      startTsRef.current = null;
-      lastUpdateTsRef.current = null;
-      // Reset display to a random number for animation (not the final number)
-      let initialDisplayNumber;
-      do {
-        initialDisplayNumber = generateRandomFace();
-      } while (initialDisplayNumber === finalNumberRef.current);
-      setDisplayNumber(initialDisplayNumber);
-      roll();
-    }
-
-    return () => {
-      if (timerRef.current) {
-        cancelAnimationFrame(timerRef.current);
-      }
-    };
-  }, [isRolling, stopAfter]);
-
-  useEffect(() => {
-    if (!isRolling && !hasStoppedRef.current) {
-      hasStoppedRef.current = true;
-      // Set display to final number when animation completes
-      if (finalNumberRef.current != null) {
-        setDisplayNumber(finalNumberRef.current);
-      }
-      // Notify parent that animation is complete (no number needed, it's already in finalNumber)
-      if (onStoppedRef.current) {
-        onStoppedRef.current();
-      }
+    if (isRolling) {
+      hasCalledStoppedRef.current = false;
     }
   }, [isRolling]);
 
-  const roll = () => {
-    timerRef.current = requestAnimationFrame((ts) => {
+  // Animation effect - only runs when isRolling is true
+  useEffect(() => {
+    if (!isRolling || !stopAfter) {
+      // Clean up if not rolling
+      if (timerRef.current) {
+        cancelAnimationFrame(timerRef.current);
+        timerRef.current = null;
+      }
+      startTsRef.current = null;
+      lastUpdateTsRef.current = null;
+      return;
+    }
+
+    // If we've already called onStopped, don't start animating again
+    // (wait for parent to set isRolling to false)
+    if (hasCalledStoppedRef.current) {
+      return;
+    }
+
+    // Reset when starting to roll
+    startTsRef.current = null;
+    lastUpdateTsRef.current = null;
+    
+    // Start with a random number (not the final number)
+    let initialNumber;
+    do {
+      initialNumber = generateRandomFace();
+    } while (initialNumber === finalNumber);
+    setDisplayNumber(initialNumber);
+
+    // Animation loop
+    const animate = (ts) => {
       if (startTsRef.current == null) {
         startTsRef.current = ts;
       }
       
-      const elapsedSinceStart = ts - startTsRef.current;
-      if (elapsedSinceStart > stopAfterRef.current) {
-        setIsRolling(false);
+      const elapsed = ts - startTsRef.current;
+      
+      // Check if animation duration is complete
+      if (elapsed >= stopAfter) {
+        // Animation complete - notify parent and clean up
+        if (!hasCalledStoppedRef.current && onStopped) {
+          hasCalledStoppedRef.current = true;
+          onStopped();
+        }
+        if (timerRef.current) {
+          cancelAnimationFrame(timerRef.current);
+          timerRef.current = null;
+        }
         return;
       }
 
+      // Update display number periodically during animation
       if (lastUpdateTsRef.current == null) {
         lastUpdateTsRef.current = 0;
       }
       
-      const elapsedBetweenUpdates = ts - lastUpdateTsRef.current;
-      if (elapsedBetweenUpdates > DICE_UPDATE_INTERVAL) {
+      const timeSinceLastUpdate = ts - lastUpdateTsRef.current;
+      if (timeSinceLastUpdate >= DICE_UPDATE_INTERVAL) {
         lastUpdateTsRef.current = ts;
         let newNumber;
-        // Ensure we get a different number for animation
-        // During animation, show random numbers (but not the final number until animation completes)
-        while (newNumber === currentDisplayNumberRef.current || 
-               newNumber === finalNumberRef.current) {
+        // Show random numbers during animation (avoid finalNumber)
+        do {
           newNumber = generateRandomFace();
-        }
+        } while (newNumber === displayNumberRef.current || newNumber === finalNumber);
         setDisplayNumber(newNumber);
       }
       
-      roll();
-    });
-  };
+      // Continue animation
+      timerRef.current = requestAnimationFrame(animate);
+    };
+
+    timerRef.current = requestAnimationFrame(animate);
+
+    // Cleanup
+    return () => {
+      if (timerRef.current) {
+        cancelAnimationFrame(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [isRolling, stopAfter, finalNumber, onStopped]);
 
   let className = styles.DieView;
   if (isExploding) className += ` ${styles.exploding}`;

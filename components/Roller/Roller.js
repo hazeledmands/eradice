@@ -56,6 +56,7 @@ export default function Roller() {
     if (text.length === 0) return;
 
     // Pre-calculate final values for all dice immediately
+    // Note: isRolling will be controlled by Ledger, so don't set it here
     const newRoll = {
       id: Date.now(),
       text,
@@ -63,6 +64,7 @@ export default function Roller() {
         ...die,
         finalNumber: generateRandomFace(), // Pre-calculate the final result
         stopAfter: generateRollDuration(),
+        isRolling: false, // Ledger will control when to start rolling
       })),
       modifier,
     };
@@ -90,10 +92,12 @@ export default function Roller() {
 
     const { diceCount, modifier: parsedModifier } = parsed;
     // Pre-calculate final values for all dice immediately
+    // Note: isRolling will be controlled by Ledger, so don't set it here
     const newDice = createDiceArray(diceCount).map(die => ({
       ...die,
       finalNumber: generateRandomFace(), // Pre-calculate the final result
       stopAfter: generateRollDuration(),
+      isRolling: false, // Ledger will control when to start rolling
     }));
 
     setRolls(prevRolls =>
