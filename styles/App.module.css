@@ -261,6 +261,12 @@
   text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
 }
 
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .terminalInput {
   display: flex;
   align-items: center;
@@ -274,6 +280,7 @@
   transition: all 0.3s ease;
   position: relative;
   font-family: 'Share Tech Mono', 'Courier New', monospace;
+  flex: 1;
 }
 
 .terminalInput:focus-within {
@@ -349,8 +356,6 @@
     inset 0 0 15px rgba(0, 255, 255, 0.1);
   text-transform: uppercase;
   letter-spacing: 2px;
-  align-self: flex-start;
-  margin-top: 0.5rem;
   text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
   animation: button-shimmer 3s ease-in-out infinite;
   position: relative;
