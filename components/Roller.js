@@ -1,13 +1,14 @@
 import React from 'react';
 import * as Random from 'random-js';
+import styles from '../styles/App.module.css';
 
 class Ledger extends React.Component {
   render() {
-    return <div className="Ledger">
+    return <div className={styles.Ledger}>
       <ul>
         {this.props.rolls.map(roll => (
           <li key={roll.id}>
-            <span className="text">{roll.text}</span>
+            <span className={styles.text}>{roll.text}</span>
             <DiceTray dice={roll.dice} modifier={roll.modifier} />
           </li>
         ))}
@@ -37,9 +38,9 @@ class DiceTray extends React.Component {
     if (this.props.modifier > 0) mathText.push(`+ ${this.props.modifier}`);
     if (isComplete && this.props.modifier > 0) mathText.push(`= ${this.props.modifier + totalFaces}`)
 
-    return <div className="DiceTray">
+    return <div className={styles.DiceTray}>
       {this.state.dice.map(die => <Die key={die.id} {...die} onStopped={(number) => this.onDieStopped(die, number)} />)}
-      <div className="Math">{mathText.join(' ')}</div>
+      <div className={styles.Math}>{mathText.join(' ')}</div>
     </div>
   }
 
@@ -129,9 +130,9 @@ class Die extends React.Component {
   }
 
   render() {
-    let className = "DieView";
-    if (this.props.isExploding) className += ' exploding';
-    if (this.props.isCancelled) className += ' cancelled';
+    let className = styles.DieView;
+    if (this.props.isExploding) className += ` ${styles.exploding}`;
+    if (this.props.isCancelled) className += ` ${styles.cancelled}`;
     return <div className={className}>
       {this.state.number}
     </div>
@@ -147,7 +148,7 @@ class Roller extends React.Component {
   }
 
   render() {
-    return <div className="Roller">
+    return <div className={styles.Roller}>
       <form onSubmit={this.handleSubmit}>
         <label htmlFor='dice-selector'>What would you like to roll?</label>
         <input 
@@ -223,3 +224,4 @@ function generateRandomFace(sides = 6) {
 }
 
 export default Roller;
+

@@ -18,7 +18,7 @@ code {
     monospace;
 }
 
-#root {
+#__next {
   min-height: 100vh;
   display: flex;
   align-items: flex-start;
@@ -27,7 +27,8 @@ code {
 }
 
 @media (max-width: 768px) {
-  #root {
+  #__next {
     padding: 1rem 0.5rem;
   }
 }
+
