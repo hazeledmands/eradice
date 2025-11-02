@@ -198,16 +198,75 @@
     0 8px 25px rgba(0, 0, 0, 0.7);
 }
 
+.rollHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
 .text {
   font-family: 'Rajdhani', sans-serif;
   font-size: 0.95rem;
   font-weight: 600;
   color: #00ffff;
   display: block;
-  margin-bottom: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 2px;
   text-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
+  flex: 1;
+}
+
+.copyButton {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #001122 0%, #003344 50%, #001122 100%);
+  background-size: 200% 200%;
+  color: #00ffaa;
+  border: 1px solid #00ffaa;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 
+    0 0 10px rgba(0, 255, 170, 0.3),
+    inset 0 0 10px rgba(0, 255, 170, 0.05);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(0, 255, 170, 0.6);
+  animation: button-shimmer 3s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.copyButton::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(0, 255, 170, 0.2), transparent);
+  transform: rotate(45deg);
+  animation: button-sweep 3s ease-in-out infinite;
+}
+
+.copyButton:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 
+    0 0 20px rgba(0, 255, 170, 0.6),
+    inset 0 0 15px rgba(0, 255, 170, 0.1);
+  border-color: #00ffff;
+  color: #00ffff;
+  text-shadow: 0 0 12px rgba(0, 255, 255, 0.8);
+}
+
+.copyButton:active {
+  transform: translateY(0) scale(1);
+  box-shadow: 
+    0 0 15px rgba(0, 255, 170, 0.4),
+    inset 0 0 10px rgba(0, 255, 170, 0.08);
 }
 
 .Roller {
@@ -442,6 +501,15 @@
 
   .Ledger :global(li) {
     padding: 1rem;
+  }
+
+  .copyButton {
+    font-size: 0.7rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .rollHeader {
+    margin-bottom: 0.5rem;
   }
 }
 

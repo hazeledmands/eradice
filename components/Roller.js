@@ -7,6 +7,7 @@ class Ledger extends React.Component {
     super(props);
     this.state = { completedRolls: {} };
     this.onRollComplete = this.onRollComplete.bind(this);
+    this.handleCopy = this.handleCopy.bind(this);
   }
 
   componentDidUpdate(prevProps) {
@@ -40,20 +41,111 @@ class Ledger extends React.Component {
     }
   }
 
+  calculateResult(roll) {
+    if (!roll.dice || roll.dice.length === 0) return null;
+    
+    const isComplete = roll.dice.every(die => !die.isRolling);
+    if (!isComplete) return null;
+
+    const totalFaces = roll.dice
+      .filter(die => !die.isRolling && !die.isCancelled)
+      .reduce((acc, die) => die.number + acc, 0);
+    
+    const modifier = roll.modifier || 0;
+    return totalFaces + modifier;
+  }
+
+  handleCopy(roll) {
+    const result = this.calculateResult(roll);
+    if (result === null) return;
+
+    // Get all completed dice (for display) and active dice (for calculation)
+    const allCompletedDice = roll.dice.filter(die => !die.isRolling);
+    const activeDice = allCompletedDice
+      .filter(die => !die.isCancelled)
+      .map(die => die.number);
+    
+    const modifier = roll.modifier || 0;
+    const totalFaces = activeDice.reduce((acc, val) => acc + val, 0);
+    
+    // Build the copy text with individual dice results
+    let copyText = `${roll.text}:`;
+    
+    // Add individual dice values - show all dice, mark cancelled ones
+    if (allCompletedDice.length > 0) {
+      const diceParts = allCompletedDice.map(die => {
+        if (die.isCancelled) {
+          return `${die.number}(cancelled)`;
+        }
+        return die.number.toString();
+      });
+      copyText += ` ${diceParts.join(' + ')}`;
+    }
+    
+    // Add intermediate total if multiple active dice
+    if (activeDice.length > 1) {
+      copyText += ` = ${totalFaces}`;
+    }
+    
+    // Add modifier if present
+    if (modifier > 0) {
+      copyText += ` + ${modifier}`;
+    }
+    
+    // Add final result
+    copyText += ` = ${result}`;
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(copyText).catch(err => {
+        console.error('Failed to copy text:', err);
+      });
+    } else {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = copyText;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+      } catch (err) {
+        console.error('Fallback copy failed:', err);
+      }
+      document.body.removeChild(textArea);
+    }
+  }
+
   render() {
     return <div className={styles.Ledger}>
       <ul>
-        {this.props.rolls.map(roll => (
-          <li key={roll.id}>
-            <span className={styles.text}>{roll.text}</span>
-            <DiceTray 
-              dice={roll.dice} 
-              modifier={roll.modifier}
-              rollId={roll.id}
-              onRollComplete={this.onRollComplete}
-            />
-          </li>
-        ))}
+        {this.props.rolls.map(roll => {
+          const result = this.calculateResult(roll);
+          const isComplete = roll.dice && roll.dice.every(die => !die.isRolling);
+          
+          return (
+            <li key={roll.id}>
+              <div className={styles.rollHeader}>
+                <span className={styles.text}>{roll.text}</span>
+                {isComplete && result !== null && (
+                  <button 
+                    className={styles.copyButton}
+                    onClick={() => this.handleCopy(roll)}
+                    title="Copy to clipboard"
+                  >
+                    Copy
+                  </button>
+                )}
+              </div>
+              <DiceTray 
+                dice={roll.dice} 
+                modifier={roll.modifier}
+                rollId={roll.id}
+                onRollComplete={this.onRollComplete}
+              />
+            </li>
+          );
+        })}
       </ul>
     </div>
   }
