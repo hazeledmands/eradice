@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Die from '../Die/Die';
 import { EXPLODE_SUCCESS_VALUE, EXPLODE_FAIL_VALUE } from '../../constants/dice';
 import { generateRollDuration } from '../../utils/randomGenerator';
-import styles from '../../styles/App.module.css';
+import styles from './DiceTray.module.css';
 
 /**
  * Component that displays a group of dice for a single roll

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateRandomFace } from '../../utils/randomGenerator';
 import { DICE_UPDATE_INTERVAL } from '../../constants/dice';
-import styles from '../../styles/App.module.css';
+import styles from './Die.module.css';
 
 /**
  * Individual die component with rolling animation

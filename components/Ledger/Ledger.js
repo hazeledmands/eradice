@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DiceTray from '../DiceTray/DiceTray';
 import { calculateRollResult, generateCopyText } from '../../utils/diceCalculations';
 import { copyToClipboard } from '../../utils/clipboard';
-import styles from '../../styles/App.module.css';
+import styles from './Ledger.module.css';
 
 /**
  * Component that displays the history of all rolls

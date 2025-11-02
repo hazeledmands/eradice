@@ -4,7 +4,7 @@ import DiceTray from '../DiceTray/DiceTray';
 import { parseDiceNotation, createDiceArray } from '../../utils/diceParser';
 import { generateRollDuration } from '../../utils/randomGenerator';
 import { useDiceRollsStorage } from '../../hooks/useSessionStorage';
-import styles from '../../styles/App.module.css';
+import styles from './Roller.module.css';
 
 /**
  * Main dice roller component

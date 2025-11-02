@@ -91,16 +91,31 @@ Enter dice notation in the input field:
 
 ```
 eradice/
-├── components/          # React components
-│   └── Roller.js       # Main dice roller component
-├── pages/              # Next.js pages
-│   ├── _app.js        # App wrapper with global styles
-│   └── index.js       # Home page
-├── styles/             # CSS files
-│   ├── globals.css    # Global styles
-│   └── App.module.css # Component styles (CSS modules)
-├── public/             # Static assets
-└── next.config.js      # Next.js configuration
+├── components/              # React components
+│   ├── Die/                # Die component
+│   │   ├── Die.js
+│   │   ├── Die.module.css
+│   │   └── __tests__/
+│   ├── DiceTray/           # DiceTray component
+│   │   ├── DiceTray.js
+│   │   └── DiceTray.module.css
+│   ├── Ledger/             # Ledger component
+│   │   ├── Ledger.js
+│   │   └── Ledger.module.css
+│   └── Roller/             # Roller component
+│       ├── Roller.js
+│       └── Roller.module.css
+├── pages/                  # Next.js pages
+│   ├── _app.js            # App wrapper with global styles
+│   ├── index.js           # Home page
+│   └── Home.module.css    # Page styles
+├── styles/                 # Global CSS files
+│   └── globals.css        # Global styles and fonts
+├── utils/                  # Utility functions
+├── hooks/                  # Custom React hooks
+├── constants/              # Constants and configuration
+├── public/                 # Static assets
+└── next.config.js          # Next.js configuration
 ```
 
 ## Learn More
