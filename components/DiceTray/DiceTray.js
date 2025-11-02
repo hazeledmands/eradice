@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Die from '../Die/Die';
 import { EXPLODE_SUCCESS_VALUE, EXPLODE_FAIL_VALUE } from '../../constants/dice';
-import { generateRollDuration } from '../../utils/randomGenerator';
+import { generateRollDuration, generateRandomFace } from '../../utils/randomGenerator';
 import styles from './DiceTray.module.css';
 
 /**
@@ -31,17 +31,21 @@ export default function DiceTray({
     }
   }, [dice, hasReportedComplete, onRollComplete, rollId]);
 
-  const handleDieStopped = useCallback((dieId, number) => {
+  const handleDieStopped = useCallback((dieId) => {
     setDice(prevDice => {
       const stoppedDie = prevDice.find(d => d.id === dieId);
       if (!stoppedDie) return prevDice;
 
-      const didExplodeSucceed = stoppedDie.canExplodeSucceed && number === EXPLODE_SUCCESS_VALUE;
-      const didExplodeFail = stoppedDie.canExplodeFail && number === EXPLODE_FAIL_VALUE;
+      // Use finalNumber for explosion logic (pre-calculated)
+      const finalNumber = stoppedDie.finalNumber;
+      if (finalNumber == null) return prevDice;
+
+      const didExplodeSucceed = stoppedDie.canExplodeSucceed && finalNumber === EXPLODE_SUCCESS_VALUE;
+      const didExplodeFail = stoppedDie.canExplodeFail && finalNumber === EXPLODE_FAIL_VALUE;
 
       let updatedDice = prevDice.map(d => {
         if (d.id !== dieId) return d;
-        return { ...d, number, isRolling: false, isCancelled: didExplodeFail };
+        return { ...d, isRolling: false, isCancelled: didExplodeFail };
       });
 
       // Add exploding die if success
@@ -52,6 +56,7 @@ export default function DiceTray({
           isExploding: true,
           canExplodeSucceed: true,
           canExplodeFail: false,
+          finalNumber: generateRandomFace(), // Pre-calculate the exploding die's result
           stopAfter: generateRollDuration(),
         };
         updatedDice = [...updatedDice, newDie];
@@ -61,13 +66,13 @@ export default function DiceTray({
       const isComplete = updatedDice.every(d => !d.isRolling);
       if (isComplete) {
         const failures = updatedDice.filter(
-          d => d.canExplodeFail && d.number === EXPLODE_FAIL_VALUE
+          d => d.canExplodeFail && d.finalNumber === EXPLODE_FAIL_VALUE
         ).length;
 
         // Cancel highest non-exploding dice based on failure count
         updatedDice
           .filter(d => !d.isExploding)
-          .sort((a, b) => b.number - a.number)
+          .sort((a, b) => (b.finalNumber ?? 0) - (a.finalNumber ?? 0))
           .filter((d, i) => i < failures)
           .forEach(cancelDie => {
             updatedDice = updatedDice.map(d => {
@@ -82,14 +87,18 @@ export default function DiceTray({
   }, []);
 
   const isComplete = dice.every(die => !die.isRolling);
+  // Use finalNumber for calculations (available immediately, not waiting for animation)
+  // Can calculate result even while dice are still animating
   const totalFaces = dice
-    .filter(die => !die.isRolling && !die.isCancelled)
-    .reduce((acc, die) => die.number + acc, 0);
+    .filter(die => !die.isCancelled && die.finalNumber != null)
+    .reduce((acc, die) => (die.finalNumber ?? 0) + acc, 0);
 
   const mathText = [];
-  if (isComplete && dice.length > 1) mathText.push(`= ${totalFaces}`);
+  // Show calculation as soon as we have finalNumbers (can show while animating)
+  const hasAllFinalNumbers = dice.length > 0 && dice.every(die => die.finalNumber != null);
+  if (hasAllFinalNumbers && dice.length > 1) mathText.push(`= ${totalFaces}`);
   if (modifier > 0) mathText.push(`+ ${modifier}`);
-  if (isComplete && modifier > 0) mathText.push(`= ${modifier + totalFaces}`);
+  if (hasAllFinalNumbers && modifier > 0) mathText.push(`= ${modifier + totalFaces}`);
 
   return (
     <div className={styles.DiceTray}>
@@ -97,7 +106,7 @@ export default function DiceTray({
         <Die
           key={die.id}
           {...die}
-          onStopped={(number) => handleDieStopped(die.id, number)}
+          onStopped={() => handleDieStopped(die.id)}
         />
       ))}
       <div className={styles.Math}>{mathText.join(' ')}</div>

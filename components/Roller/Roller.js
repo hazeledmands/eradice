@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Ledger from '../Ledger/Ledger';
 import DiceTray from '../DiceTray/DiceTray';
 import { parseDiceNotation, createDiceArray } from '../../utils/diceParser';
-import { generateRollDuration } from '../../utils/randomGenerator';
+import { generateRollDuration, generateRandomFace } from '../../utils/randomGenerator';
 import { useDiceRollsStorage } from '../../hooks/useSessionStorage';
 import styles from './Roller.module.css';
 
@@ -55,11 +55,13 @@ export default function Roller() {
     e.preventDefault();
     if (text.length === 0) return;
 
+    // Pre-calculate final values for all dice immediately
     const newRoll = {
       id: Date.now(),
       text,
       dice: dice.map(die => ({
         ...die,
+        finalNumber: generateRandomFace(), // Pre-calculate the final result
         stopAfter: generateRollDuration(),
       })),
       modifier,
@@ -87,8 +89,10 @@ export default function Roller() {
     if (!parsed) return;
 
     const { diceCount, modifier: parsedModifier } = parsed;
+    // Pre-calculate final values for all dice immediately
     const newDice = createDiceArray(diceCount).map(die => ({
       ...die,
+      finalNumber: generateRandomFace(), // Pre-calculate the final result
       stopAfter: generateRollDuration(),
     }));
 

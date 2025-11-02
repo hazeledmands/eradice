@@ -5,17 +5,19 @@ import styles from './Die.module.css';
 
 /**
  * Individual die component with rolling animation
+ * The finalNumber is pre-calculated immediately, and animation is purely visual
  */
 export default function Die({ 
   id, 
-  number: initialNumber, 
+  finalNumber, 
   isRolling: initialIsRolling, 
   stopAfter,
   isExploding, 
   isCancelled,
   onStopped 
 }) {
-  const [number, setNumber] = useState(initialNumber ?? generateRandomFace());
+  // Display number - starts as random for animation, resolves to finalNumber when done
+  const [displayNumber, setDisplayNumber] = useState(generateRandomFace());
   const [isRolling, setIsRolling] = useState(initialIsRolling);
   const startTsRef = useRef(null);
   const lastUpdateTsRef = useRef(null);
@@ -23,24 +25,39 @@ export default function Die({
   const stopAfterRef = useRef(stopAfter);
   const onStoppedRef = useRef(onStopped);
   const hasStoppedRef = useRef(false);
-  const currentNumberRef = useRef(number);
+  const currentDisplayNumberRef = useRef(displayNumber);
+  const finalNumberRef = useRef(finalNumber);
 
   // Update refs when props change
   useEffect(() => {
     stopAfterRef.current = stopAfter;
     onStoppedRef.current = onStopped;
-  }, [stopAfter, onStopped]);
+    finalNumberRef.current = finalNumber;
+  }, [stopAfter, onStopped, finalNumber]);
 
-  // Update current number ref
+  // Update current display number ref
   useEffect(() => {
-    currentNumberRef.current = number;
-  }, [number]);
+    currentDisplayNumberRef.current = displayNumber;
+  }, [displayNumber]);
+
+  // When finalNumber changes (e.g., on reroll), update display if not rolling
+  useEffect(() => {
+    if (!isRolling && finalNumber != null) {
+      setDisplayNumber(finalNumber);
+    }
+  }, [finalNumber, isRolling]);
 
   useEffect(() => {
     if (isRolling && stopAfter) {
       hasStoppedRef.current = false;
       startTsRef.current = null;
       lastUpdateTsRef.current = null;
+      // Reset display to a random number for animation (not the final number)
+      let initialDisplayNumber;
+      do {
+        initialDisplayNumber = generateRandomFace();
+      } while (initialDisplayNumber === finalNumberRef.current);
+      setDisplayNumber(initialDisplayNumber);
       roll();
     }
 
@@ -52,9 +69,16 @@ export default function Die({
   }, [isRolling, stopAfter]);
 
   useEffect(() => {
-    if (!isRolling && !hasStoppedRef.current && onStoppedRef.current) {
+    if (!isRolling && !hasStoppedRef.current) {
       hasStoppedRef.current = true;
-      onStoppedRef.current(currentNumberRef.current);
+      // Set display to final number when animation completes
+      if (finalNumberRef.current != null) {
+        setDisplayNumber(finalNumberRef.current);
+      }
+      // Notify parent that animation is complete (no number needed, it's already in finalNumber)
+      if (onStoppedRef.current) {
+        onStoppedRef.current();
+      }
     }
   }, [isRolling]);
 
@@ -78,11 +102,13 @@ export default function Die({
       if (elapsedBetweenUpdates > DICE_UPDATE_INTERVAL) {
         lastUpdateTsRef.current = ts;
         let newNumber;
-        // Ensure we get a different number
-        while (newNumber === currentNumberRef.current) {
+        // Ensure we get a different number for animation
+        // During animation, show random numbers (but not the final number until animation completes)
+        while (newNumber === currentDisplayNumberRef.current || 
+               newNumber === finalNumberRef.current) {
           newNumber = generateRandomFace();
         }
-        setNumber(newNumber);
+        setDisplayNumber(newNumber);
       }
       
       roll();
@@ -93,6 +119,6 @@ export default function Die({
   if (isExploding) className += ` ${styles.exploding}`;
   if (isCancelled) className += ` ${styles.cancelled}`;
   
-  return <div className={className}>{number}</div>;
+  return <div className={className}>{displayNumber}</div>;
 }
 

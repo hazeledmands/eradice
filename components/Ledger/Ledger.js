@@ -50,13 +50,16 @@ export default function Ledger({ rolls, onRollComplete, onReroll }) {
     <div className={styles.Ledger}>
       <ul>
         {rolls.map(roll => {
+          // Result can be calculated immediately using pre-calculated finalNumber
           const result = calculateRollResult(roll);
+          // Animation completion check (for UX - buttons show after animation, but result is available immediately)
           const isComplete = roll.dice && roll.dice.every(die => !die.isRolling);
 
           return (
             <li key={roll.id}>
               <div className={styles.rollHeader}>
                 <span className={styles.text}>{roll.text}</span>
+                {/* Show buttons after animation completes, but result is available immediately */}
                 {isComplete && result !== null && (
                   <div className={styles.buttonGroup}>
                     <button

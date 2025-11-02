@@ -30,14 +30,14 @@ describe('Die Component', () => {
   });
 
   describe('Rendering', () => {
-    it('should render with initial number', () => {
-      const { container } = render(<Die number={5} isRolling={false} />);
+    it('should render with finalNumber', () => {
+      const { container } = render(<Die finalNumber={5} isRolling={false} />);
       const dieElement = container.firstChild;
       expect(dieElement).toBeInTheDocument();
       expect(dieElement.textContent).toBe('5');
     });
 
-    it('should generate random number when no initial number provided', () => {
+    it('should generate random number when no finalNumber provided', () => {
       const { generateRandomFace } = require('../../../utils/randomGenerator');
       generateRandomFace.mockReturnValueOnce(4);
       
@@ -48,14 +48,14 @@ describe('Die Component', () => {
     });
 
     it('should apply base DieView class', () => {
-      const { container } = render(<Die number={1} isRolling={false} />);
+      const { container } = render(<Die finalNumber={1} isRolling={false} />);
       const dieElement = container.firstChild;
       expect(dieElement.className).toContain('DieView');
     });
 
     it('should apply exploding class when isExploding is true', () => {
       const { container } = render(
-        <Die number={6} isRolling={false} isExploding={true} />
+        <Die finalNumber={6} isRolling={false} isExploding={true} />
       );
       const dieElement = container.firstChild;
       expect(dieElement.className).toContain('exploding');
@@ -63,7 +63,7 @@ describe('Die Component', () => {
 
     it('should apply cancelled class when isCancelled is true', () => {
       const { container } = render(
-        <Die number={2} isRolling={false} isCancelled={true} />
+        <Die finalNumber={2} isRolling={false} isCancelled={true} />
       );
       const dieElement = container.firstChild;
       expect(dieElement.className).toContain('cancelled');
@@ -72,7 +72,7 @@ describe('Die Component', () => {
     it('should apply both exploding and cancelled classes when both are true', () => {
       const { container } = render(
         <Die 
-          number={1} 
+          finalNumber={1} 
           isRolling={false} 
           isExploding={true} 
           isCancelled={true} 
@@ -86,21 +86,21 @@ describe('Die Component', () => {
 
   describe('Rolling Behavior', () => {
     it('should start rolling when isRolling is true and stopAfter is provided', () => {
-      render(<Die number={1} isRolling={true} stopAfter={100} />);
+      render(<Die finalNumber={1} isRolling={true} stopAfter={100} />);
       
       expect(global.requestAnimationFrame).toHaveBeenCalled();
     });
 
     it('should not start rolling when isRolling is false', () => {
       global.requestAnimationFrame.mockClear();
-      render(<Die number={1} isRolling={false} stopAfter={100} />);
+      render(<Die finalNumber={1} isRolling={false} stopAfter={100} />);
       
       expect(global.requestAnimationFrame).not.toHaveBeenCalled();
     });
 
     it('should not start rolling when stopAfter is not provided', () => {
       global.requestAnimationFrame.mockClear();
-      render(<Die number={1} isRolling={true} />);
+      render(<Die finalNumber={1} isRolling={true} />);
       
       expect(global.requestAnimationFrame).not.toHaveBeenCalled();
     });
@@ -109,7 +109,7 @@ describe('Die Component', () => {
       jest.useFakeTimers();
       const onStopped = jest.fn();
       
-      render(<Die number={3} isRolling={true} stopAfter={100} onStopped={onStopped} />);
+      render(<Die finalNumber={3} isRolling={true} stopAfter={100} onStopped={onStopped} />);
       
       // Fast-forward time to complete the roll
       act(() => {
@@ -124,14 +124,14 @@ describe('Die Component', () => {
       jest.useRealTimers();
     });
 
-    it('should call onStopped with the current number', async () => {
+    it('should resolve to finalNumber when rolling stops', async () => {
       jest.useFakeTimers();
       const onStopped = jest.fn();
-      const initialNumber = 4;
+      const finalNumber = 4;
       
-      render(
+      const { container } = render(
         <Die 
-          number={initialNumber} 
+          finalNumber={finalNumber} 
           isRolling={true} 
           stopAfter={100} 
           onStopped={onStopped} 
@@ -144,10 +144,10 @@ describe('Die Component', () => {
       
       await waitFor(() => {
         expect(onStopped).toHaveBeenCalled();
+        // Should display finalNumber after animation completes
+        const dieElement = container.firstChild;
+        expect(dieElement.textContent).toBe(String(finalNumber));
       });
-      
-      // Verify the callback was called (the exact number parameter depends on timing)
-      expect(onStopped.mock.calls.length).toBeGreaterThan(0);
       
       jest.useRealTimers();
     });
@@ -157,7 +157,7 @@ describe('Die Component', () => {
       const onStopped = jest.fn();
       
       const { rerender } = render(
-        <Die number={2} isRolling={true} stopAfter={100} onStopped={onStopped} />
+        <Die finalNumber={2} isRolling={true} stopAfter={100} onStopped={onStopped} />
       );
       
       act(() => {
@@ -170,7 +170,7 @@ describe('Die Component', () => {
       
       // Rerender with isRolling still false should not call onStopped again
       act(() => {
-        rerender(<Die number={2} isRolling={false} stopAfter={100} onStopped={onStopped} />);
+        rerender(<Die finalNumber={2} isRolling={false} stopAfter={100} onStopped={onStopped} />);
         jest.advanceTimersByTime(50);
       });
       
@@ -180,7 +180,7 @@ describe('Die Component', () => {
     });
 
     it('should clean up animation frame on unmount', () => {
-      const { unmount } = render(<Die number={1} isRolling={true} stopAfter={100} />);
+      const { unmount } = render(<Die finalNumber={1} isRolling={true} stopAfter={100} />);
       
       unmount();
       
@@ -189,7 +189,7 @@ describe('Die Component', () => {
   });
 
   describe('Number Updates During Rolling', () => {
-    it('should update number during rolling animation', async () => {
+    it('should update display number during rolling animation but resolve to finalNumber', async () => {
       jest.useFakeTimers();
       const { generateRandomFace } = require('../../../utils/randomGenerator');
       
@@ -200,21 +200,29 @@ describe('Die Component', () => {
         return callCount % 6 + 1; // Cycle through 1-6
       });
       
+      const finalNumber = 5;
       const { container } = render(
-        <Die number={1} isRolling={true} stopAfter={200} />
+        <Die finalNumber={finalNumber} isRolling={true} stopAfter={200} />
       );
       
       const dieElement = container.firstChild;
-      const initialText = dieElement.textContent;
       
       // Advance time to allow some updates
       act(() => {
         jest.advanceTimersByTime(100);
       });
       
-      // The number may have changed during rolling
-      // (This is a basic test to ensure the component renders)
+      // During rolling, display number may differ from finalNumber
       expect(dieElement).toBeInTheDocument();
+      
+      // After animation completes, should show finalNumber
+      act(() => {
+        jest.advanceTimersByTime(150);
+      });
+      
+      await waitFor(() => {
+        expect(dieElement.textContent).toBe(String(finalNumber));
+      });
       
       jest.useRealTimers();
     });
@@ -225,13 +233,13 @@ describe('Die Component', () => {
       jest.useFakeTimers();
       
       // Start with a component that's not rolling
-      const { rerender, container } = render(<Die number={3} isRolling={false} stopAfter={100} />);
+      const { rerender, container } = render(<Die finalNumber={3} isRolling={false} stopAfter={100} />);
       
       expect(container.firstChild).toBeInTheDocument();
       
       // Change to rolling - component should still render correctly
       act(() => {
-        rerender(<Die number={3} isRolling={true} stopAfter={100} />);
+        rerender(<Die finalNumber={3} isRolling={true} stopAfter={100} />);
         // Allow time for the effect to run
         jest.advanceTimersByTime(0);
       });
@@ -246,13 +254,13 @@ describe('Die Component', () => {
 
     it('should update classes when isExploding prop changes', () => {
       const { container, rerender } = render(
-        <Die number={5} isRolling={false} isExploding={false} />
+        <Die finalNumber={5} isRolling={false} isExploding={false} />
       );
       
       let dieElement = container.firstChild;
       expect(dieElement.className).not.toContain('exploding');
       
-      rerender(<Die number={5} isRolling={false} isExploding={true} />);
+      rerender(<Die finalNumber={5} isRolling={false} isExploding={true} />);
       
       dieElement = container.firstChild;
       expect(dieElement.className).toContain('exploding');
@@ -260,13 +268,13 @@ describe('Die Component', () => {
 
     it('should update classes when isCancelled prop changes', () => {
       const { container, rerender } = render(
-        <Die number={2} isRolling={false} isCancelled={false} />
+        <Die finalNumber={2} isRolling={false} isCancelled={false} />
       );
       
       let dieElement = container.firstChild;
       expect(dieElement.className).not.toContain('cancelled');
       
-      rerender(<Die number={2} isRolling={false} isCancelled={true} />);
+      rerender(<Die finalNumber={2} isRolling={false} isCancelled={true} />);
       
       dieElement = container.firstChild;
       expect(dieElement.className).toContain('cancelled');
