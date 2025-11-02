@@ -269,7 +269,7 @@ class Roller extends React.Component {
         </div>
       </form>
 
-      <DiceTray dice={this.state.dice} />
+      {this.state.text && <DiceTray dice={this.state.dice} />}
 
       <Ledger rolls={this.state.rolls} onRollComplete={this.handleRollComplete} />
     </div>
