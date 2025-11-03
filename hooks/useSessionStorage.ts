@@ -64,9 +64,9 @@ export function useDiceRollsStorage() {
 
   const saveRolls = useCallback(
     (rolls: Roll[]) => {
-      // Only save completed rolls (no dice still rolling)
+      // Only save completed rolls (all dice have final numbers)
       const completedRolls = rolls.filter(
-        (roll) => roll.dice && roll.dice.every((die) => !die.isRolling)
+        (roll) => roll.dice && roll.dice.every((die) => die.finalNumber != null)
       );
       setStoredRolls(completedRolls);
     },
@@ -74,10 +74,10 @@ export function useDiceRollsStorage() {
   );
 
   const loadRolls = useCallback(() => {
-    // Only return completed rolls
+    // Only return completed rolls (all dice have final numbers)
     // Ensure backward compatibility: add diceCount if missing (default to dice.length)
     return storedRolls
-      .filter((roll) => roll.dice && roll.dice.every((die) => !die.isRolling))
+      .filter((roll) => roll.dice && roll.dice.every((die) => die.finalNumber != null))
       .map((roll) => ({
         ...roll,
         diceCount: roll.diceCount ?? roll.dice.length,

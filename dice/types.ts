@@ -3,7 +3,6 @@
  */
 export interface Die {
   id: number;
-  isRolling?: boolean;
   isExploding?: boolean;
   isCancelled?: boolean;
   canExplodeSucceed?: boolean;

@@ -8,6 +8,7 @@ import styles from './DiceTray.module.css';
 
 interface DiceTrayProps {
   roll: Roll | null;
+  rollStates?: Record<number, boolean>; // dieId -> isRolling
   onDieStopped?: (dieId: number) => void;
 }
 
@@ -17,6 +18,7 @@ interface DiceTrayProps {
  */
 export default function DiceTray({
   roll,
+  rollStates = {},
   onDieStopped,
 }: DiceTrayProps) {
   const dice = roll?.dice || [];
@@ -25,14 +27,14 @@ export default function DiceTray({
   const [dieStates, setDieStates] = useState<Record<number, 'rolling' | 'stopped'>>({});
   const timeoutRefs = useRef<Record<number, NodeJS.Timeout>>({});
 
-
   // Initialize die states and set up timeouts when dice start rolling
   useEffect(() => {
     dice.forEach((die) => {
       const currentState = dieStates[die.id];
+      const shouldBeRolling = rollStates[die.id] === true;
 
       // If die should be rolling but isn't in state yet, start it
-      if (die.isRolling && currentState !== 'rolling') {
+      if (shouldBeRolling && currentState !== 'rolling') {
         setDieStates((prev) => ({
           ...prev,
           [die.id]: 'rolling',
@@ -60,7 +62,7 @@ export default function DiceTray({
           // Clean up timeout ref
           delete timeoutRefs.current[die.id];
         }, duration);
-      } else if (!die.isRolling && currentState === 'rolling') {
+      } else if (!shouldBeRolling && currentState === 'rolling') {
         // If parent says die should not be rolling, stop it
         setDieStates((prev) => ({
           ...prev,
@@ -72,7 +74,7 @@ export default function DiceTray({
           clearTimeout(timeoutRefs.current[die.id]);
           delete timeoutRefs.current[die.id];
         }
-      } else if (!die.isRolling && currentState === undefined) {
+      } else if (!shouldBeRolling && currentState === undefined) {
         // Initialize stopped dice
         setDieStates((prev) => ({
           ...prev,
@@ -87,12 +89,13 @@ export default function DiceTray({
         clearTimeout(timeout);
       });
     };
-  }, [dice, dieStates, onDieStopped]);
+  }, [dice, dieStates, rollStates, onDieStopped]);
 
   // Check if dice are complete
   const isComplete = dice.every((die) => {
     const state = dieStates[die.id];
-    return state === 'stopped' || (!die.isRolling && state === undefined);
+    const shouldBeRolling = rollStates[die.id] === true;
+    return state === 'stopped' || (!shouldBeRolling && state === undefined);
   });
 
   // Use finalNumber for calculations (available immediately, not waiting for animation)
@@ -130,7 +133,7 @@ export default function DiceTray({
       <div className={styles.controls}>
         {dice.map((die) => {
           const dieState =
-            dieStates[die.id] || (die.isRolling ? 'rolling' : 'stopped');
+            dieStates[die.id] || (rollStates[die.id] === true ? 'rolling' : 'stopped');
           return (
             <Die
               key={die.id}

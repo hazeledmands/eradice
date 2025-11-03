@@ -120,25 +120,14 @@ export default function Ledger({ rolls }: LedgerProps) {
           // Check rolling state from Ledger's control
           const rollStates = diceRollingStates[roll.id] || {};
 
-          // Enhance dice with controlled isRolling state from Ledger
-          const controlledDice = roll.dice.map((die) => ({
-            ...die,
-            isRolling: rollStates[die.id] ?? die.isRolling ?? false,
-          }));
-
-          // Create roll object with controlled dice
-          const controlledRoll: Roll = {
-            ...roll,
-            dice: controlledDice,
-          };
-
           return (
             <li key={roll.id}>
               <div className={styles.rollHeader}>
                 <span className={styles.text}>{roll.text}</span>
               </div>
               <DiceTray
-                roll={controlledRoll}
+                roll={roll}
+                rollStates={rollStates}
                 onDieStopped={(dieId) => handleDieStopped(roll.id, dieId)}
               />
             </li>

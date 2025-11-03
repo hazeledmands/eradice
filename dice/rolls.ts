@@ -37,7 +37,6 @@ export function createRoll(
       ...die,
       finalNumber,
       stopAfter,
-      isRolling: false, // Ledger will control when to start rolling
       isCancelled,
     });
 
@@ -46,7 +45,6 @@ export function createRoll(
       // Recursively calculate exploding dice
       let currentExplodingDie: Die = {
         id: nextExplodingDieId++,
-        isRolling: false,
         isExploding: true,
         canExplodeSucceed: true,
         canExplodeFail: false,
@@ -67,7 +65,6 @@ export function createRoll(
         if (explodingFinalNumber === EXPLODE_SUCCESS_VALUE) {
           currentExplodingDie = {
             id: nextExplodingDieId++,
-            isRolling: false,
             isExploding: true,
             canExplodeSucceed: true,
             canExplodeFail: false,

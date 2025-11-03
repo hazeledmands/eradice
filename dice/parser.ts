@@ -30,7 +30,6 @@ export function createDiceArray(diceCount: number): Die[] {
     const isExploding = i === diceCount - 1;
     dice.push({
       id: i,
-      isRolling: true,
       isExploding,
       canExplodeSucceed: isExploding,
       canExplodeFail: isExploding,

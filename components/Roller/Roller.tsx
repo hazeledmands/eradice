@@ -89,7 +89,7 @@ export default function Roller() {
         </div>
       </form>
 
-      {text && <DiceTray roll={{ id: 0, text, dice, modifier, diceCount }} />}
+      {text && <DiceTray roll={{ id: 0, text, dice, modifier, diceCount }} rollStates={{}} />}
 
       <Ledger rolls={rolls} />
     </div>
