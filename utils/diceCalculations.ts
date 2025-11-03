@@ -1,9 +1,11 @@
+import type { Roll } from '../types/dice';
+
 /**
  * Calculates the total result of a roll
- * @param {Object} roll - Roll object with dice array and optional modifier
- * @returns {number | null} Total result, or null if roll has no dice or missing finalNumbers
+ * @param roll - Roll object with dice array and optional modifier
+ * @returns Total result, or null if roll has no dice or missing finalNumbers
  */
-export function calculateRollResult(roll) {
+export function calculateRollResult(roll: Roll): number | null {
   if (!roll.dice || roll.dice.length === 0) return null;
   
   // Use finalNumber which is available immediately (pre-calculated)
@@ -21,10 +23,10 @@ export function calculateRollResult(roll) {
 
 /**
  * Generates copy text for a roll
- * @param {Object} roll - Roll object with dice array and modifier
- * @returns {string} Formatted copy text
+ * @param roll - Roll object with dice array and modifier
+ * @returns Formatted copy text
  */
-export function generateCopyText(roll) {
+export function generateCopyText(roll: Roll): string {
   const result = calculateRollResult(roll);
   if (result === null) return '';
 

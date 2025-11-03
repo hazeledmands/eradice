@@ -26,37 +26,43 @@ describe('Roller UI Test', () => {
       await user.click(rollButton);
 
       // Wait for the roll to appear in the ledger
-      await waitFor(() => {
-        const rollTexts = screen.getAllByText(diceNotation);
-        expect(rollTexts.length).toBeGreaterThan(0);
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          const rollTexts = screen.getAllByText(diceNotation);
+          expect(rollTexts.length).toBeGreaterThan(0);
+        },
+        { timeout: 1000 }
+      );
 
       // Wait for dice to finish rolling and display results
       // Dice animations take 500-1500ms, wait up to 3 seconds
-      await waitFor(() => {
-        // Check that dice numbers are displayed (1-6)
-        const dieElements = container.querySelectorAll('[class*="DieView"]');
-        const diceWithNumbers = Array.from(dieElements).filter(die => {
-          const text = die.textContent?.trim();
-          return text && /^[1-6]$/.test(text);
-        });
-        expect(diceWithNumbers.length).toBeGreaterThan(0);
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          // Check that dice numbers are displayed (1-6)
+          const dieElements = container.querySelectorAll('[class*="DieView"]');
+          const diceWithNumbers = Array.from(dieElements).filter((die) => {
+            const text = die.textContent?.trim();
+            return text && /^[1-6]$/.test(text);
+          });
+          expect(diceWithNumbers.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
     }
 
     // Verify all rolls are displayed in the ledger
-    rollInputs.forEach(diceNotation => {
+    rollInputs.forEach((diceNotation) => {
       const rollTexts = screen.getAllByText(diceNotation);
       expect(rollTexts.length).toBeGreaterThan(0);
     });
 
     // Verify that dice results are shown for all rolls
     const allDieElements = container.querySelectorAll('[class*="DieView"]');
-    const allVisibleDice = Array.from(allDieElements).filter(die => {
+    const allVisibleDice = Array.from(allDieElements).filter((die) => {
       const text = die.textContent?.trim();
       return text && /^[1-6]$/.test(text);
     });
-    
+
     expect(allVisibleDice.length).toBeGreaterThan(0);
   });
 
@@ -66,24 +72,31 @@ describe('Roller UI Test', () => {
 
     const input = screen.getByLabelText(/what would you like to roll/i);
     await user.type(input, '3d+2');
-    
+
     const rollButton = screen.getByRole('button', { name: /roll/i });
     await user.click(rollButton);
 
     // Wait for roll to appear
-    await waitFor(() => {
-      expect(screen.getByText('3d+2')).toBeInTheDocument();
-    }, { timeout: 1000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText('3d+2')).toBeInTheDocument();
+      },
+      { timeout: 1000 }
+    );
 
     // Wait for dice to display numbers (animations take 500-1500ms)
-    await waitFor(() => {
-      const dieElements = container.querySelectorAll('[class*="DieView"]');
-      const diceWithNumbers = Array.from(dieElements).filter(die => {
-        const text = die.textContent?.trim();
-        return text && /^[1-6]$/.test(text);
-      });
-      // Should have at least 3 dice (one for each d in 3d)
-      expect(diceWithNumbers.length).toBeGreaterThanOrEqual(3);
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        const dieElements = container.querySelectorAll('[class*="DieView"]');
+        const diceWithNumbers = Array.from(dieElements).filter((die) => {
+          const text = die.textContent?.trim();
+          return text && /^[1-6]$/.test(text);
+        });
+        // Should have at least 3 dice (one for each d in 3d)
+        expect(diceWithNumbers.length).toBeGreaterThanOrEqual(3);
+      },
+      { timeout: 3000 }
+    );
   });
 });
+

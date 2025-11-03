@@ -1,13 +1,15 @@
+import type { ParsedDiceNotation, Die } from '../types/dice';
+
 /**
  * Parses dice notation string (e.g., "3d+2" or "5d")
- * @param {string} text - Dice notation string
- * @returns {{diceCount: number, modifier: number} | null} Parsed dice count and modifier, or null if invalid
+ * @param text - Dice notation string
+ * @returns Parsed dice count and modifier, or null if invalid
  */
-export function parseDiceNotation(text) {
+export function parseDiceNotation(text: string): ParsedDiceNotation | null {
   const parser = /(?<dice>\d+)\s*d\s*(\+\s*(?<modifier>\d+))?/i;
   const result = parser.exec(text);
 
-  if (result == null) {
+  if (result == null || !result.groups) {
     return null;
   }
 
@@ -19,11 +21,11 @@ export function parseDiceNotation(text) {
 
 /**
  * Creates initial dice array for a given dice count
- * @param {number} diceCount - Number of dice to create
- * @returns {Array} Array of dice objects
+ * @param diceCount - Number of dice to create
+ * @returns Array of dice objects
  */
-export function createDiceArray(diceCount) {
-  const dice = [];
+export function createDiceArray(diceCount: number): Die[] {
+  const dice: Die[] = [];
   for (let i = 0; i < diceCount; ++i) {
     const isExploding = i === diceCount - 1;
     dice.push({

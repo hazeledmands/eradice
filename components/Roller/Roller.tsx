@@ -4,17 +4,18 @@ import DiceTray from '../DiceTray/DiceTray';
 import { parseDiceNotation, createDiceArray } from '../../utils/diceParser';
 import { generateRollDuration, generateRandomFace } from '../../utils/randomGenerator';
 import { useDiceRollsStorage } from '../../hooks/useSessionStorage';
+import type { Roll, Die } from '../../types/dice';
 import styles from './Roller.module.css';
 
 /**
  * Main dice roller component
  */
 export default function Roller() {
-  const [rolls, setRolls] = useState([]);
+  const [rolls, setRolls] = useState<Roll[]>([]);
   const [text, setText] = useState('');
-  const [dice, setDice] = useState([]);
+  const [dice, setDice] = useState<Die[]>([]);
   const [modifier, setModifier] = useState(0);
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { saveRolls, loadRolls } = useDiceRollsStorage();
 
   useEffect(() => {
@@ -28,14 +29,14 @@ export default function Roller() {
     if (inputRef.current) {
       inputRef.current.focus();
     }
-  }, []);
+  }, [loadRolls]);
 
   useEffect(() => {
     // Save rolls to session storage whenever rolls change
     saveRolls(rolls);
   }, [rolls, saveRolls]);
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputText = e.target.value;
     setText(inputText);
 
@@ -51,16 +52,16 @@ export default function Roller() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (text.length === 0) return;
 
     // Pre-calculate final values for all dice immediately
     // Note: isRolling will be controlled by Ledger, so don't set it here
-    const newRoll = {
+    const newRoll: Roll = {
       id: Date.now(),
       text,
-      dice: dice.map(die => ({
+      dice: dice.map((die) => ({
         ...die,
         finalNumber: generateRandomFace(), // Pre-calculate the final result
         stopAfter: generateRollDuration(),
@@ -69,15 +70,15 @@ export default function Roller() {
       modifier,
     };
 
-    setRolls(prevRolls => [newRoll, ...prevRolls]);
+    setRolls((prevRolls) => [newRoll, ...prevRolls]);
     setText('');
     setDice([]);
     setModifier(0);
   };
 
-  const handleRollComplete = (rollId, completedDice) => {
-    setRolls(prevRolls =>
-      prevRolls.map(roll =>
+  const handleRollComplete = (rollId: number, completedDice: Die[]) => {
+    setRolls((prevRolls) =>
+      prevRolls.map((roll) =>
         roll.id === rollId ? { ...roll, dice: completedDice } : roll
       )
     );
@@ -103,12 +104,9 @@ export default function Roller() {
         </div>
       </form>
 
-      {text && <DiceTray dice={dice} />}
+      {text && <DiceTray roll={{ id: 0, text, dice, modifier }} />}
 
-      <Ledger
-        rolls={rolls}
-        onRollComplete={handleRollComplete}
-      />
+      <Ledger rolls={rolls} onRollComplete={handleRollComplete} />
     </div>
   );
 }

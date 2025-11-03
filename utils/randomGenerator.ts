@@ -3,18 +3,18 @@ import { ROLL_DURATION_MIN, ROLL_DURATION_RANGE } from '../constants/dice';
 
 /**
  * Generates a random duration for dice rolling animation
- * @returns {number} Duration in milliseconds
+ * @returns Duration in milliseconds
  */
-export function generateRollDuration() {
+export function generateRollDuration(): number {
   return ROLL_DURATION_MIN + Math.random() * ROLL_DURATION_RANGE;
 }
 
 /**
  * Generates a random dice face value
- * @param {number} sides - Number of sides on the die (default: 6)
- * @returns {number} Random face value between 1 and sides
+ * @param sides - Number of sides on the die (default: 6)
+ * @returns Random face value between 1 and sides
  */
-export function generateRandomFace(sides = 6) {
+export function generateRandomFace(sides: number = 6): number {
   return Random.die(sides)(Random.browserCrypto);
 }
 

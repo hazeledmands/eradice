@@ -1,9 +1,9 @@
 /**
  * Copies text to clipboard with fallback for older browsers
- * @param {string} text - Text to copy
- * @returns {Promise<void>}
+ * @param text - Text to copy
+ * @returns Promise that resolves when copy is complete
  */
-export async function copyToClipboard(text) {
+export async function copyToClipboard(text: string): Promise<void> {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     try {
       await navigator.clipboard.writeText(text);
