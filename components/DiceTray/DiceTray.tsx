@@ -24,6 +24,21 @@ export default function DiceTray({ roll }: DiceTrayProps) {
         return;
       }
 
+      // Check if roll is older than a minute - if so, skip animation
+      let shouldAnimate = true;
+      if (roll?.date) {
+        const rollDate = new Date(roll.date);
+        const now = new Date();
+        const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
+        shouldAnimate = rollDate > oneMinuteAgo;
+      }
+
+      // If roll is older than a minute, skip animation and show all dice as complete
+      if (!shouldAnimate) {
+        setDiceCompleteStates(new Array<boolean>(roll.dice.length).fill(true));
+        return;
+      }
+
       const timeoutRefs: NodeJS.Timeout[] = [];
 
       // Start the first diceCount dice rolling
@@ -75,7 +90,7 @@ export default function DiceTray({ roll }: DiceTrayProps) {
     // set a timeout for the next exploding die
     const timeoutRef = setTimeout(() => handleDieStopped(i), roll.dice[i].stopAfter);
     return () => clearTimeout(timeoutRef);
-  }, [diceCompleteStates, roll]);
+  }, [diceCompleteStates, roll, handleDieStopped]);
 
 
   const isComplete = useMemo(() => {

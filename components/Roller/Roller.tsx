@@ -72,7 +72,7 @@ export default function Roller() {
   // Memoize the preview roll object to prevent unnecessary re-renders in DiceTray
   const previewRoll = useMemo(() => {
     if (!text || !dice.length) return null;
-    return { id: 0, text, dice, modifier, diceCount };
+    return { id: 0, text, dice, modifier, diceCount, date: new Date().toISOString() };
   }, [text, dice, modifier, diceCount]);
 
   return (

@@ -88,6 +88,7 @@ export function createRoll(
     dice: allDice,
     modifier,
     diceCount,
+    date: new Date().toISOString(),
   };
 }
 

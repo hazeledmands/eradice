@@ -7,7 +7,7 @@ const STORAGE_KEYS = {
 } as const;
 
 /**
- * Custom hook for managing session storage
+ * Custom hook for managing local storage
  * @param key - Storage key
  * @param initialValue - Initial value if no stored value exists
  * @returns Stored value and setter function
@@ -22,10 +22,10 @@ export function useSessionStorage<T>(
     }
 
     try {
-      const item = window.sessionStorage.getItem(key);
+      const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
-      console.error(`Error loading ${key} from sessionStorage:`, error);
+      console.error(`Error loading ${key} from localStorage:`, error);
       return initialValue;
     }
   });
@@ -37,13 +37,13 @@ export function useSessionStorage<T>(
           const valueToStore = value instanceof Function ? value(currentValue) : value;
 
           if (typeof window !== 'undefined') {
-            window.sessionStorage.setItem(key, JSON.stringify(valueToStore));
+            window.localStorage.setItem(key, JSON.stringify(valueToStore));
           }
 
           return valueToStore;
         });
       } catch (error) {
-        console.error(`Error saving ${key} to sessionStorage:`, error);
+        console.error(`Error saving ${key} to localStorage:`, error);
       }
     },
     [key]
@@ -53,7 +53,7 @@ export function useSessionStorage<T>(
 }
 
 /**
- * Custom hook specifically for managing dice rolls in session storage
+ * Custom hook specifically for managing dice rolls in local storage
  * Only stores completed rolls (no dice still rolling)
  */
 export function useDiceRollsStorage() {
@@ -76,11 +76,13 @@ export function useDiceRollsStorage() {
   const loadRolls = useCallback(() => {
     // Only return completed rolls (all dice have final numbers)
     // Ensure backward compatibility: add diceCount if missing (default to dice.length)
+    // Ensure backward compatibility: add date if missing (default to current date)
     return storedRolls
       .filter((roll) => roll.dice && roll.dice.every((die) => die.finalNumber != null))
       .map((roll) => ({
         ...roll,
         diceCount: roll.diceCount ?? roll.dice.length,
+        date: roll.date ?? new Date().toISOString(),
       }));
   }, [storedRolls]);
 

@@ -51,6 +51,16 @@
   flex: 1;
 }
 
+.date {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: rgba(0, 255, 255, 0.6);
+  opacity: 0.8;
+  white-space: nowrap;
+  margin-left: 1rem;
+}
+
 
 @media (max-width: 768px) {
   .Ledger :global(li) {
@@ -59,6 +69,14 @@
 
   .rollHeader {
     margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .date {
+    font-size: 0.7rem;
+    margin-left: 0;
+    margin-top: 0.25rem;
+    width: 100%;
   }
 }
 

@@ -26,6 +26,7 @@ export interface Roll extends ParsedRollNotation {
   id: number;
   text: string;
   dice: Die[];
+  date: string; // ISO date string of when the roll was created
 }
 
 /**
