@@ -5,14 +5,14 @@ import styles from './Ledger.module.css';
 
 interface LedgerProps {
   rolls: Roll[];
-  onRollComplete?: (rollId: number, dice: Die[]) => void;
 }
 
 /**
  * Component that displays the history of all rolls
  * Controls when individual dice should roll or finish rolling
+ * Animates dice sequentially: first diceCount dice, then exploding dice one by one
  */
-export default function Ledger({ rolls, onRollComplete }: LedgerProps) {
+export default function Ledger({ rolls }: LedgerProps) {
   const [completedRolls, setCompletedRolls] = useState<Record<number, boolean>>({});
   // Track rolling state for each die in each roll - Ledger controls this
   const [diceRollingStates, setDiceRollingStates] = useState<
@@ -20,55 +20,31 @@ export default function Ledger({ rolls, onRollComplete }: LedgerProps) {
   >({});
 
   useEffect(() => {
-    // Initialize tracking for new rolls and start them rolling
-    // Also detect when dice change in existing rolls (exploding dice)
-    setDiceRollingStates((prevState) => {
-      const updated = { ...prevState };
-      let hasChanges = false;
-
-      rolls.forEach((roll) => {
-        if (!roll.dice || roll.dice.length === 0) return;
-
-        // Check if this roll is new or if dice have changed
-        const existingState = updated[roll.id] || {};
-        const existingDieIds = new Set(Object.keys(existingState).map(Number));
-        const currentDieIds = new Set(roll.dice.map((d) => d.id));
-
-        // Detect new dice (exploding dice)
-        const newDice = roll.dice.filter((die) => !existingDieIds.has(die.id));
-
-        if (newDice.length > 0) {
-          if (!updated[roll.id]) {
-            updated[roll.id] = {};
-          }
-          newDice.forEach((die) => {
-            updated[roll.id][die.id] = true; // Start new dice rolling
-          });
-          hasChanges = true;
-        }
-
-        // Initialize new rolls (all dice should roll)
-        if (
-          !completedRolls[roll.id] &&
-          Object.keys(existingState).length === 0
-        ) {
-          updated[roll.id] = roll.dice.reduce(
-            (acc, die) => {
-              acc[die.id] = true; // Start all dice rolling
-              return acc;
-            },
-            {} as Record<number, boolean>
-          );
-          hasChanges = true;
-        }
-      });
-
-      return hasChanges ? updated : prevState;
-    });
-
-    // Initialize completion tracking for new rolls
+    // Initialize new rolls: start only the first diceCount dice rolling
     const newRolls = rolls.filter((roll) => !completedRolls[roll.id]);
     if (newRolls.length > 0) {
+      setDiceRollingStates((prevState) => {
+        const updated = { ...prevState };
+        let hasChanges = false;
+
+        newRolls.forEach((roll) => {
+          if (!roll.dice || roll.dice.length === 0) return;
+          if (updated[roll.id]) return; // Already initialized
+
+          updated[roll.id] = {};
+          
+          // Start only the first diceCount dice rolling
+          const diceToStart = roll.dice.slice(0, roll.diceCount);
+          diceToStart.forEach((die) => {
+            updated[roll.id][die.id] = true;
+          });
+          
+          hasChanges = true;
+        });
+
+        return hasChanges ? updated : prevState;
+      });
+
       setCompletedRolls((prevState) => {
         const updated = { ...prevState };
         newRolls.forEach((roll) => {
@@ -80,6 +56,9 @@ export default function Ledger({ rolls, onRollComplete }: LedgerProps) {
   }, [rolls, completedRolls]);
 
   const handleDieStopped = (rollId: number, dieId: number) => {
+    const roll = rolls.find((r) => r.id === rollId);
+    if (!roll) return;
+
     // Update the rolling state for this specific die
     setDiceRollingStates((prevState) => {
       const updated = { ...prevState };
@@ -87,27 +66,51 @@ export default function Ledger({ rolls, onRollComplete }: LedgerProps) {
         updated[rollId] = {};
       }
       updated[rollId][dieId] = false;
+
+      // Find which die index this was
+      const dieIndex = roll.dice.findIndex((d) => d.id === dieId);
+      const rollState = updated[rollId];
+      
+      // Check if all initial diceCount dice have completed
+      const initialDice = roll.dice.slice(0, roll.diceCount);
+      const allInitialDiceStopped = initialDice.every(
+        (die) => rollState[die.id] === false || rollState[die.id] === undefined
+      );
+      
+      // If all initial dice have stopped and we haven't started exploding dice yet,
+      // start the first exploding die
+      if (allInitialDiceStopped && dieIndex < roll.diceCount && roll.dice.length > roll.diceCount) {
+        const firstExplodingDie = roll.dice[roll.diceCount];
+        if (firstExplodingDie && rollState[firstExplodingDie.id] === undefined) {
+          updated[rollId][firstExplodingDie.id] = true;
+        }
+      }
+      
+      // If this was an exploding die, start the next one if it exists
+      if (dieIndex >= roll.diceCount) {
+        const nextIndex = dieIndex + 1;
+        if (nextIndex < roll.dice.length) {
+          const nextExplodingDie = roll.dice[nextIndex];
+          if (nextExplodingDie && rollState[nextExplodingDie.id] === undefined) {
+            updated[rollId][nextExplodingDie.id] = true;
+          }
+        }
+      }
+
+      // Check if all dice are now complete
+      const allStopped = roll.dice.every(
+        (die) => rollState[die.id] === false || rollState[die.id] === undefined
+      );
+      
+      if (allStopped) {
+        setCompletedRolls((prevCompleted) => ({
+          ...prevCompleted,
+          [rollId]: true,
+        }));
+      }
+
       return updated;
     });
-  };
-
-  const handleDiceUpdate = (rollId: number, updatedDice: Die[]) => {
-    // Update the roll's dice (for exploding dice)
-    if (onRollComplete) {
-      onRollComplete(rollId, updatedDice);
-    }
-    // Ledger's useEffect will detect new dice and start them rolling
-  };
-
-  const handleRollComplete = (rollId: number, completedDice: Die[]) => {
-    setCompletedRolls((prevState) => ({
-      ...prevState,
-      [rollId]: true,
-    }));
-
-    if (onRollComplete) {
-      onRollComplete(rollId, completedDice);
-    }
   };
 
   return (
@@ -137,8 +140,6 @@ export default function Ledger({ rolls, onRollComplete }: LedgerProps) {
               <DiceTray
                 roll={controlledRoll}
                 onDieStopped={(dieId) => handleDieStopped(roll.id, dieId)}
-                onDiceUpdate={handleDiceUpdate}
-                onRollComplete={handleRollComplete}
               />
             </li>
           );

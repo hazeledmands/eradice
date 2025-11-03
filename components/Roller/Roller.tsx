@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Ledger from '../Ledger/Ledger';
 import DiceTray from '../DiceTray/DiceTray';
 import { parseDiceNotation, createDiceArray } from '../../dice/parser';
-import { generateRollDuration, generateRandomFace } from '../../dice/randomGenerator';
+import { createRoll } from '../../dice/rolls';
 import { useDiceRollsStorage } from '../../hooks/useSessionStorage';
 import type { Roll, Die } from '../../dice/types';
 import styles from './Roller.module.css';
@@ -59,20 +59,7 @@ export default function Roller() {
     e.preventDefault();
     if (text.length === 0) return;
 
-    // Pre-calculate final values for all dice immediately
-    // Note: isRolling will be controlled by Ledger, so don't set it here
-    const newRoll: Roll = {
-      id: Date.now(),
-      text,
-      dice: dice.map((die) => ({
-        ...die,
-        finalNumber: generateRandomFace(), // Pre-calculate the final result
-        stopAfter: generateRollDuration(),
-        isRolling: false, // Ledger will control when to start rolling
-      })),
-      modifier,
-      diceCount,
-    };
+    const newRoll = createRoll(text, dice, modifier, diceCount);
 
     setRolls((prevRolls) => [newRoll, ...prevRolls]);
     setText('');
@@ -81,13 +68,6 @@ export default function Roller() {
     setDiceCount(0);
   };
 
-  const handleRollComplete = (rollId: number, completedDice: Die[]) => {
-    setRolls((prevRolls) =>
-      prevRolls.map((roll) =>
-        roll.id === rollId ? { ...roll, dice: completedDice } : roll
-      )
-    );
-  };
 
   return (
     <div className={styles.Roller}>
@@ -111,7 +91,7 @@ export default function Roller() {
 
       {text && <DiceTray roll={{ id: 0, text, dice, modifier, diceCount }} />}
 
-      <Ledger rolls={rolls} onRollComplete={handleRollComplete} />
+      <Ledger rolls={rolls} />
     </div>
   );
 }
