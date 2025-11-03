@@ -83,30 +83,6 @@ export default function Roller() {
     );
   };
 
-  const handleReroll = (rollId) => {
-    const roll = rolls.find(r => r.id === rollId);
-    if (!roll) return;
-
-    const parsed = parseDiceNotation(roll.text);
-    if (!parsed) return;
-
-    const { diceCount, modifier: parsedModifier } = parsed;
-    // Pre-calculate final values for all dice immediately
-    // Note: isRolling will be controlled by Ledger, so don't set it here
-    const newDice = createDiceArray(diceCount).map(die => ({
-      ...die,
-      finalNumber: generateRandomFace(), // Pre-calculate the final result
-      stopAfter: generateRollDuration(),
-      isRolling: false, // Ledger will control when to start rolling
-    }));
-
-    setRolls(prevRolls =>
-      prevRolls.map(r =>
-        r.id === rollId ? { ...r, dice: newDice } : r
-      )
-    );
-  };
-
   return (
     <div className={styles.Roller}>
       <form onSubmit={handleSubmit}>
@@ -132,7 +108,6 @@ export default function Roller() {
       <Ledger
         rolls={rolls}
         onRollComplete={handleRollComplete}
-        onReroll={handleReroll}
       />
     </div>
   );

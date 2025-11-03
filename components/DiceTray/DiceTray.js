@@ -2,21 +2,30 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Die from '../Die/Die';
 import { EXPLODE_SUCCESS_VALUE, EXPLODE_FAIL_VALUE } from '../../constants/dice';
 import { generateRollDuration, generateRandomFace } from '../../utils/randomGenerator';
+import { calculateRollResult, generateCopyText } from '../../utils/diceCalculations';
+import { copyToClipboard } from '../../utils/clipboard';
 import styles from './DiceTray.module.css';
 
 /**
  * Component that displays a group of dice for a single roll
  * Manages timeouts and state transitions for dice
+ * 
+ * @param {Object} props
+ * @param {Object} props.roll - Roll object with id, text, dice, and modifier
+ * @param {Function} props.onDieStopped - Callback when a die stops rolling
+ * @param {Function} props.onDiceUpdate - Callback when dice are updated (e.g., explosions)
+ * @param {Function} props.onRollComplete - Callback when all dice finish rolling
  */
 export default function DiceTray({ 
-  dice: initialDice, 
-  modifier,
-  rollId,
+  roll: initialRoll,
   onDieStopped,
   onDiceUpdate,
-  onRollComplete 
+  onRollComplete
 }) {
-  const [dice, setDice] = useState(initialDice);
+  const [roll, setRoll] = useState(initialRoll);
+  const dice = roll?.dice || [];
+  const modifier = roll?.modifier || 0;
+  const rollId = roll?.id;
   // Track die states: "rolling" | "stopped"
   const [dieStates, setDieStates] = useState({});
   const [hasReportedComplete, setHasReportedComplete] = useState(false);
@@ -30,15 +39,17 @@ export default function DiceTray({
       return;
     }
 
-    setDice(prevDice => {
+    setRoll(prevRoll => {
+      if (!prevRoll) return prevRoll;
+      const prevDice = prevRoll.dice || [];
       const die = prevDice.find(d => d.id === dieId);
-      if (!die) return prevDice;
+      if (!die) return prevRoll;
 
       processedExplosionsRef.current.add(dieId);
 
       // Use finalNumber for explosion logic (pre-calculated)
       const finalNumber = die.finalNumber;
-      if (finalNumber == null) return prevDice;
+      if (finalNumber == null) return prevRoll;
 
       const didExplodeSucceed = die.canExplodeSucceed && finalNumber === EXPLODE_SUCCESS_VALUE;
       const didExplodeFail = die.canExplodeFail && finalNumber === EXPLODE_FAIL_VALUE;
@@ -66,18 +77,19 @@ export default function DiceTray({
         }
       }
 
-      return updatedDice;
+      return { ...prevRoll, dice: updatedDice };
     });
   }, [onDiceUpdate, rollId]);
 
+  // Update roll when initialRoll changes
   useEffect(() => {
-    if (initialDice !== dice) {
-      setDice(initialDice);
+    if (initialRoll !== roll) {
+      setRoll(initialRoll);
       setHasReportedComplete(false);
       // Reset processed explosions when dice change
       processedExplosionsRef.current.clear();
     }
-  }, [initialDice, dice]);
+  }, [initialRoll, roll]);
 
   // Initialize die states and set up timeouts when dice start rolling
   useEffect(() => {
@@ -145,41 +157,43 @@ export default function DiceTray({
     };
   }, [dice, dieStates, onDieStopped, handleDieExplosion]);
 
+  // Check if dice are complete
+  const isComplete = dice.every(die => {
+    const state = dieStates[die.id];
+    return state === 'stopped' || (!die.isRolling && state === undefined);
+  });
+
   // Check for completion and trigger explosion logic
   useEffect(() => {
-    const isComplete = dice.every(die => {
-      const state = dieStates[die.id];
-      return state === 'stopped' || (!die.isRolling && state === undefined);
-    });
-
     if (isComplete && !hasReportedComplete && onRollComplete) {
       setHasReportedComplete(true);
       onRollComplete(rollId, dice);
     }
-  }, [dice, dieStates, hasReportedComplete, onRollComplete, rollId]);
+  }, [dice, dieStates, hasReportedComplete, onRollComplete, rollId, isComplete]);
 
   // Check if all dice are complete and apply cancellation logic
   useEffect(() => {
-    const isComplete = dice.every(die => {
+    const allComplete = dice.every(die => {
       const state = dieStates[die.id];
       return state === 'stopped' || (!die.isRolling && state === undefined);
     });
 
-    if (isComplete) {
+    if (allComplete) {
       const failures = dice.filter(
         d => d.canExplodeFail && d.finalNumber === EXPLODE_FAIL_VALUE
       ).length;
 
       if (failures > 0) {
         // Cancel highest non-exploding dice based on failure count
-        setDice(prevDice => {
-          let updatedDice = [...prevDice];
+        setRoll(prevRoll => {
+          if (!prevRoll) return prevRoll;
+          let updatedDice = [...dice];
           const needsUpdate = updatedDice
             .filter(d => !d.isExploding && !d.isCancelled)
             .sort((a, b) => (b.finalNumber ?? 0) - (a.finalNumber ?? 0))
             .filter((d, i) => i < failures);
 
-          if (needsUpdate.length === 0) return prevDice;
+          if (needsUpdate.length === 0) return prevRoll;
 
           needsUpdate.forEach(cancelDie => {
             updatedDice = updatedDice.map(d => {
@@ -187,7 +201,7 @@ export default function DiceTray({
               return { ...d, isCancelled: true };
             });
           });
-          return updatedDice;
+          return { ...prevRoll, dice: updatedDice };
         });
       }
     }
@@ -206,21 +220,50 @@ export default function DiceTray({
   if (modifier > 0) mathText.push(`+ ${modifier}`);
   if (hasAllFinalNumbers && modifier > 0) mathText.push(`= ${modifier + totalFaces}`);
 
+  // Calculate result for button display
+  const result = roll ? calculateRollResult(roll) : null;
+
+  const handleCopy = async () => {
+    if (!roll) return;
+    const copyText = generateCopyText(roll);
+    if (!copyText) return;
+
+    try {
+      await copyToClipboard(copyText);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
   return (
     <div className={styles.DiceTray}>
-      {dice.map(die => {
-        const dieState = dieStates[die.id] || (die.isRolling ? 'rolling' : 'stopped');
-        return (
-          <Die
-            key={die.id}
-            state={dieState}
-            finalNumber={die.finalNumber}
-            isExploding={die.isExploding}
-            isCancelled={die.isCancelled}
-          />
-        );
-      })}
-      <div className={styles.Math}>{mathText.join(' ')}</div>
+      <div className={styles.controls}>
+        {dice.map(die => {
+          const dieState = dieStates[die.id] || (die.isRolling ? 'rolling' : 'stopped');
+          return (
+            <Die
+              key={die.id}
+              state={dieState}
+              finalNumber={die.finalNumber}
+              isExploding={die.isExploding}
+              isCancelled={die.isCancelled}
+            />
+          );
+        })}
+      </div>
+      <div className={styles.bottomRow}>
+        <div className={styles.Math}>{mathText.join(' ')}</div>
+        {/* Show button after animation completes, but result is available immediately */}
+        {isComplete && result !== null && (
+          <button
+            className={styles.copyButton}
+            onClick={handleCopy}
+            title="Copy to clipboard"
+          >
+            Copy
+          </button>
+        )}
+      </div>
     </div>
   );
 }

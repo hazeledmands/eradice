@@ -1,11 +1,4 @@
 .DiceTray {
-  display: flex;
-  flex-flow: row wrap;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 0.75rem;
-  min-height: 4rem;
-
   border-radius: 8px;
   background: rgba(0, 20, 30, 0.6);
   backdrop-filter: blur(5px);
@@ -17,6 +10,23 @@
     inset 0 0 20px rgba(0, 255, 255, 0.05),
     0 8px 32px rgba(0, 0, 0, 0.5);
   position: relative;
+}
+
+.controls {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 4rem;
+}
+
+.bottomRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.75rem;
+  gap: 1rem;
 }
 
 .DiceTray::before {
@@ -49,24 +59,107 @@
   color: #00ffaa;
   display: block;
   font-size: 1.4rem;
-  font-weight: 600;
-  margin-top: 0.75rem;
-  width: 100%;
+  font-weight: 700;
   text-shadow: 
     0 0 10px #00ffaa,
     0 0 20px #00ffaa;
   letter-spacing: 2px;
-  font-weight: 700;
+  flex: 1;
+}
+
+.copyButton {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #001122 0%, #003344 50%, #001122 100%);
+  background-size: 200% 200%;
+  color: #00ffaa;
+  border: 1px solid #00ffaa;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 
+    0 0 10px rgba(0, 255, 170, 0.3),
+    inset 0 0 10px rgba(0, 255, 170, 0.05);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(0, 255, 170, 0.6);
+  animation: button-shimmer 3s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.copyButton::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(0, 255, 170, 0.2), transparent);
+  transform: rotate(45deg);
+  animation: button-sweep 3s ease-in-out infinite;
+}
+
+.copyButton:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 
+    0 0 20px rgba(0, 255, 170, 0.6),
+    inset 0 0 15px rgba(0, 255, 170, 0.1);
+  border-color: #00ffff;
+  color: #00ffff;
+  text-shadow: 0 0 12px rgba(0, 255, 255, 0.8);
+}
+
+.copyButton:active {
+  transform: translateY(0) scale(1);
+  box-shadow: 
+    0 0 15px rgba(0, 255, 170, 0.4),
+    inset 0 0 10px rgba(0, 255, 170, 0.08);
+}
+
+@keyframes button-shimmer {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes button-sweep {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
 }
 
 @media (max-width: 768px) {
   .DiceTray {
     padding: 1rem;
+  }
+
+  .controls {
     gap: 0.5rem;
   }
 
   .Math {
     font-size: 1.2rem;
+  }
+
+  .copyButton {
+    font-size: 0.7rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+
+  .bottomRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
   }
 }
 
