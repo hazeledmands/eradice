@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Die from '../Die/Die';
-import { generateRollDuration } from '../../dice/randomGenerator';
 import { calculateRollResult, generateCopyText } from '../../dice/calculations';
 import { copyToClipboard } from '../../utils/clipboard';
 import type { Roll } from '../../dice/types';
@@ -17,146 +16,86 @@ interface DiceTrayProps {
  * - Then animates exploding dice one by one
  */
 export default function DiceTray({ roll }: DiceTrayProps) {
-  const dice = roll?.dice || [];
-  const modifier = roll?.modifier || 0;
-  const diceCount = roll?.diceCount || 0;
-  
-  // Track which dice should be rolling (controlled by sequential animation logic)
-  const [diceRollingStates, setDiceRollingStates] = useState<boolean[]>([]);
-  // Track if all dice have completed
-  const [isComplete, setIsComplete] = useState(false);
-  
-  const timeoutRefs = useRef<Record<number, NodeJS.Timeout>>({});
-  const prevRollIdRef = useRef<number | null>(null);
+  const [diceCompleteStates, setDiceCompleteStates] = useState<boolean[]>([]);
 
-  // Reset state when roll changes
   useEffect(() => {
-    if (!roll) {
-      setIsComplete(false);
-      setDiceRollingStates([]);
+      if (!roll?.dice?.length) {
+        setDiceCompleteStates([]);
+        return;
+      }
+
+      const timeoutRefs: NodeJS.Timeout[] = [];
+
+      // Start the first diceCount dice rolling
+      const newCompleteStates = new Array<boolean>(roll.dice.length).fill(false);
+      for (let i = 0; i < roll.diceCount; i++) {
+        if (!roll.dice[i].stopAfter) {
+          continue;
+        }
+        timeoutRefs.push(setTimeout(() => {
+          handleDieStopped(i);
+        }, roll.dice[i].stopAfter));
+      }
+      setDiceCompleteStates(newCompleteStates);
+
+      return () => {
+        for (const timeout of timeoutRefs) {
+          clearTimeout(timeout);
+        }
+      };
+  }, [roll]);
+
+  const handleDieStopped = useCallback((dieIndex: number) => {
+    setDiceCompleteStates((prevState) => {
+      const updated = [...prevState];
+      updated[dieIndex] = true;
+      return updated;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!roll || diceCompleteStates.length === 0) return;
+
+    // iterate until we find a die that is not complete
+    let i = 0;
+    for (; i < roll.dice.length; i++) {
+      if (!diceCompleteStates[i]) { break; }
+    }
+
+    // If we're completely done, finish
+    if (i >= roll.dice.length) {
+      return;
+    }
+    
+    // if we're still rolling the first diceCount dice, wait til they finish
+    if (i < roll.diceCount) {
       return;
     }
 
-    // If this is a new roll (different ID), reset everything
-    if (prevRollIdRef.current !== roll.id) {
-      prevRollIdRef.current = roll.id;
-      setIsComplete(false);
-      setDiceRollingStates([]);
-      
-      // Clear all existing timeouts
-      Object.values(timeoutRefs.current).forEach((timeout) => {
-        clearTimeout(timeout);
-      });
-      timeoutRefs.current = {};
-    }
-  }, [roll]);
+    // set a timeout for the next exploding die
+    const timeoutRef = setTimeout(() => handleDieStopped(i), roll.dice[i].stopAfter);
+    return () => clearTimeout(timeoutRef);
+  }, [diceCompleteStates, roll]);
 
-  // Initialize new roll: start only the first diceCount dice rolling
-  useEffect(() => {
-    if (!roll || !dice.length) return;
-    
-    // Start only the first diceCount dice rolling
-    const newRollingStates = new Array<boolean>(dice.length).fill(false);
-    for (let i = 0; i < diceCount; i++) {
-      newRollingStates[i] = true;
-    }
-    setDiceRollingStates(newRollingStates);
-  }, [roll, dice, diceCount]);
 
-  // Handle die stopped - manages sequential animation logic
-  const handleDieStopped = useCallback((dieIndex: number) => {
-    if (!roll) return;
-
-    // Update the rolling state for this specific die
-    setDiceRollingStates((prevState) => {
-      const updated = [...prevState];
-      updated[dieIndex] = false;
-      
-      // Check if all initial diceCount dice have completed
-      const allInitialDiceStopped = updated
-        .slice(0, diceCount)
-        .every((isRolling) => !isRolling);
-      
-      // If all initial dice have stopped and we haven't started exploding dice yet,
-      // start the first exploding die
-      if (allInitialDiceStopped && dieIndex < diceCount && dice.length > diceCount) {
-        if (!updated[diceCount]) {
-          updated[diceCount] = true;
-        }
-      }
-      
-      // If this was an exploding die, start the next one if it exists
-      if (dieIndex >= diceCount) {
-        const nextIndex = dieIndex + 1;
-        if (nextIndex < dice.length && !updated[nextIndex]) {
-          updated[nextIndex] = true;
-        }
-      }
-
-      // Check if all dice are now complete
-      const allStopped = updated.every((isRolling) => !isRolling);
-      
-      if (allStopped) {
-        setIsComplete(true);
-      }
-
-      return updated;
-    });
-  }, [roll, dice, diceCount]);
-
-  // Set up timeouts when dice start rolling
-  useEffect(() => {
-    dice.forEach((die, dieIndex) => {
-      const shouldBeRolling = diceRollingStates[dieIndex] === true;
-      const hasTimeout = timeoutRefs.current[dieIndex] !== undefined;
-
-      // If die should be rolling but doesn't have a timeout yet, start it
-      if (shouldBeRolling && !hasTimeout) {
-        // Clear any existing timeout for this die (safety check)
-        if (timeoutRefs.current[dieIndex]) {
-          clearTimeout(timeoutRefs.current[dieIndex]);
-        }
-
-        // Set timeout to stop the die after stopAfter duration
-        const duration = die.stopAfter || generateRollDuration();
-        timeoutRefs.current[dieIndex] = setTimeout(() => {
-          // Notify that this die has stopped (handles sequential animation)
-          handleDieStopped(dieIndex);
-
-          // Clean up timeout ref
-          delete timeoutRefs.current[dieIndex];
-        }, duration);
-      } else if (!shouldBeRolling && hasTimeout) {
-        // If die should not be rolling, clear its timeout
-        if (timeoutRefs.current[dieIndex]) {
-          clearTimeout(timeoutRefs.current[dieIndex]);
-          delete timeoutRefs.current[dieIndex];
-        }
-      }
-    });
-
-    // Cleanup function
-    return () => {
-      Object.values(timeoutRefs.current).forEach((timeout) => {
-        clearTimeout(timeout);
-      });
-    };
-  }, [dice, diceRollingStates, handleDieStopped]);
+  const isComplete = useMemo(() => {
+    return diceCompleteStates.every((state) => state);
+  }, [diceCompleteStates]);
 
   // Use finalNumber for calculations (available immediately, not waiting for animation)
   // Can calculate result even while dice are still animating
-  const totalFaces = dice
+  const totalFaces = (roll?.dice || [])
     .filter((die) => !die.isCancelled && die.finalNumber != null)
     .reduce((acc, die) => (die.finalNumber ?? 0) + acc, 0);
 
   const mathText: string[] = [];
   // Show calculation as soon as we have finalNumbers (can show while animating)
   const hasAllFinalNumbers =
-    dice.length > 0 && dice.every((die) => die.finalNumber != null);
-  if (hasAllFinalNumbers && dice.length > 1) mathText.push(`= ${totalFaces}`);
-  if (modifier > 0) mathText.push(`+ ${modifier}`);
-  if (hasAllFinalNumbers && modifier > 0)
-    mathText.push(`= ${modifier + totalFaces}`);
+    (roll?.dice || []).length > 0 && (roll?.dice || []).every((die) => die.finalNumber != null);
+  if (hasAllFinalNumbers && (roll?.dice || []).length > 1) mathText.push(`= ${totalFaces}`);
+  if ((roll?.modifier || 0) > 0) mathText.push(`+ ${roll?.modifier || 0}`);
+  if (hasAllFinalNumbers && (roll?.modifier || 0) > 0)
+    mathText.push(`= ${(roll?.modifier || 0) + totalFaces}`);
 
   // Calculate result for button display
   const result = roll ? calculateRollResult(roll) : null;
@@ -176,33 +115,30 @@ export default function DiceTray({ roll }: DiceTrayProps) {
   return (
     <div className={styles.DiceTray}>
       <div className={styles.controls}>
-        {dice.map((die, dieIndex) => {
-          const dieState = diceRollingStates[dieIndex] === true ? 'rolling' : 'stopped';
+        {(roll?.dice || []).map((die, dieIndex) => {
           return (
             <Die
               key={die.id}
-              state={dieState}
+              state={diceCompleteStates[dieIndex] ? 'stopped' : 'rolling'}
               finalNumber={die.finalNumber}
               isExploding={die.isExploding}
-              isCancelled={die.isCancelled}
+              isCancelled={isComplete && die.isCancelled}
             />
           );
         })}
       </div>
       <div className={styles.bottomRow}>
-        <div className={styles.Math}>{mathText.join(' ')}</div>
-        {/* Show button after animation completes, but result is available immediately */}
-        {isComplete && result !== null && (
-          <button
-            className={styles.copyButton}
-            onClick={handleCopy}
-            title="Copy to clipboard"
-          >
-            Copy
-          </button>
-        )}
+        {isComplete && (<React.Fragment>
+          <div className={styles.Math}>{mathText.join(' ')}</div>
+            <button
+              className={styles.copyButton}
+              onClick={handleCopy}
+              title="Copy to clipboard"
+            >
+              Copy
+            </button>
+        </React.Fragment>)}
       </div>
     </div>
   );
 }
-

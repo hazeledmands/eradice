@@ -42,34 +42,21 @@ export function createRoll(
 
     // Check for explosion success (roll 6 on exploding die)
     if (die.canExplodeSucceed && finalNumber === EXPLODE_SUCCESS_VALUE && !isCancelled) {
-      // Recursively calculate exploding dice
-      let currentExplodingDie: Die = {
-        id: nextExplodingDieId++,
-        isExploding: true,
-        canExplodeSucceed: true,
-        canExplodeFail: false,
-      };
-
-      // Keep adding exploding dice as long as they roll 6
-      while (currentExplodingDie.canExplodeSucceed) {
+      while (true) {
         const explodingFinalNumber = generateRandomFace();
         const explodingStopAfter = generateRollDuration();
-        
-        allDice.push({
-          ...currentExplodingDie,
-          finalNumber: explodingFinalNumber,
-          stopAfter: explodingStopAfter,
-        });
 
-        // If this exploding die rolled 6, create another one
-        if (explodingFinalNumber === EXPLODE_SUCCESS_VALUE) {
-          currentExplodingDie = {
+        allDice.push({
             id: nextExplodingDieId++,
             isExploding: true,
             canExplodeSucceed: true,
             canExplodeFail: false,
-          };
-        } else {
+            finalNumber: explodingFinalNumber,
+            stopAfter: explodingStopAfter,
+          });
+
+        // If this exploding die rolled 6, create another one
+        if (explodingFinalNumber !== EXPLODE_SUCCESS_VALUE) {
           break;
         }
       }
