@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import { parseDiceNotation } from '../diceParser';
+import { parseDiceNotation } from '../parser';
 
 describe('parseDiceNotation - Property-Based Tests', () => {
   /**

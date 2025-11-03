@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Ledger from '../Ledger/Ledger';
 import DiceTray from '../DiceTray/DiceTray';
-import { parseDiceNotation, createDiceArray } from '../../utils/diceParser';
-import { generateRollDuration, generateRandomFace } from '../../utils/randomGenerator';
+import { parseDiceNotation, createDiceArray } from '../../dice/parser';
+import { generateRollDuration, generateRandomFace } from '../../dice/randomGenerator';
 import { useDiceRollsStorage } from '../../hooks/useSessionStorage';
-import type { Roll, Die } from '../../types/dice';
+import type { Roll, Die } from '../../dice/types';
 import styles from './Roller.module.css';
 
 /**

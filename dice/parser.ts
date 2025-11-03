@@ -1,4 +1,4 @@
-import type { ParsedDiceNotation, Die } from '../types/dice';
+import type { ParsedDiceNotation, Die } from './types';
 
 /**
  * Parses dice notation string (e.g., "3d+2" or "5d")

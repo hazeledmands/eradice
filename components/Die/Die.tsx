@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateRandomFace } from '../../utils/randomGenerator';
-import type { DieState } from '../../types/dice';
+import { generateRandomFace } from '../../dice/randomGenerator';
+import type { DieState } from '../../dice/types';
 import styles from './Die.module.css';
 
 // Animation frame throttling (milliseconds between updates)

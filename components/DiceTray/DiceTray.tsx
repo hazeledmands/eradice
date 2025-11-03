@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Die from '../Die/Die';
-import { generateRollDuration, generateRandomFace } from '../../utils/randomGenerator';
-import { calculateRollResult, generateCopyText } from '../../utils/diceCalculations';
+import { generateRollDuration, generateRandomFace } from '../../dice/randomGenerator';
+import { calculateRollResult, generateCopyText } from '../../dice/calculations';
 import { copyToClipboard } from '../../utils/clipboard';
-import type { Roll, Die as DieType } from '../../types/dice';
+import type { Roll, Die as DieType } from '../../dice/types';
 import styles from './DiceTray.module.css';
 
 // Dice-related constants

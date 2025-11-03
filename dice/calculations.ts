@@ -1,4 +1,4 @@
-import type { Roll } from '../types/dice';
+import type { Roll } from './types';
 
 /**
  * Calculates the total result of a roll

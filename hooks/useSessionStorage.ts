@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { Roll } from '../types/dice';
+import type { Roll } from '../dice/types';
 
 // Storage-related constants
 const STORAGE_KEYS = {

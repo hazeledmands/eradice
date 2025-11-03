@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import DiceTray from '../DiceTray/DiceTray';
-import type { Roll, Die } from '../../types/dice';
+import type { Roll, Die } from '../../dice/types';
 import styles from './Ledger.module.css';
 
 interface LedgerProps {
