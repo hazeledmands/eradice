@@ -15,6 +15,7 @@ export default function Roller() {
   const [text, setText] = useState('');
   const [dice, setDice] = useState<Die[]>([]);
   const [modifier, setModifier] = useState(0);
+  const [diceCount, setDiceCount] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const { saveRolls, loadRolls } = useDiceRollsStorage();
 
@@ -42,13 +43,15 @@ export default function Roller() {
 
     const parsed = parseDiceNotation(inputText);
     if (parsed) {
-      const { diceCount, modifier: parsedModifier } = parsed;
-      const newDice = createDiceArray(diceCount);
+      const { diceCount: parsedDiceCount, modifier: parsedModifier } = parsed;
+      const newDice = createDiceArray(parsedDiceCount);
       setDice(newDice);
       setModifier(parsedModifier);
+      setDiceCount(parsedDiceCount);
     } else {
       setDice([]);
       setModifier(0);
+      setDiceCount(0);
     }
   };
 
@@ -68,12 +71,14 @@ export default function Roller() {
         isRolling: false, // Ledger will control when to start rolling
       })),
       modifier,
+      diceCount,
     };
 
     setRolls((prevRolls) => [newRoll, ...prevRolls]);
     setText('');
     setDice([]);
     setModifier(0);
+    setDiceCount(0);
   };
 
   const handleRollComplete = (rollId: number, completedDice: Die[]) => {
@@ -104,7 +109,7 @@ export default function Roller() {
         </div>
       </form>
 
-      {text && <DiceTray roll={{ id: 0, text, dice, modifier }} />}
+      {text && <DiceTray roll={{ id: 0, text, dice, modifier, diceCount }} />}
 
       <Ledger rolls={rolls} onRollComplete={handleRollComplete} />
     </div>

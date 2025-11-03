@@ -13,21 +13,20 @@ export interface Die {
 }
 
 /**
- * Represents a complete roll with dice and modifier
+ * Parsed dice notation result
  */
-export interface Roll {
-  id: number;
-  text: string;
-  dice: Die[];
+export interface ParsedRollNotation {
+  diceCount: number;
   modifier: number;
 }
 
 /**
- * Parsed dice notation result
+ * Represents a complete roll with dice and modifier
  */
-export interface ParsedDiceNotation {
-  diceCount: number;
-  modifier: number;
+export interface Roll extends ParsedRollNotation {
+  id: number;
+  text: string;
+  dice: Die[];
 }
 
 /**

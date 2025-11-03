@@ -1,11 +1,11 @@
-import type { ParsedDiceNotation, Die } from './types';
+import type { ParsedRollNotation, Die } from './types';
 
 /**
  * Parses dice notation string (e.g., "3d+2" or "5d")
  * @param text - Dice notation string
  * @returns Parsed dice count and modifier, or null if invalid
  */
-export function parseDiceNotation(text: string): ParsedDiceNotation | null {
+export function parseDiceNotation(text: string): ParsedRollNotation | null {
   const parser = /(?<dice>\d+)\s*d\s*(\+\s*(?<modifier>\d+))?/i;
   const result = parser.exec(text);
 

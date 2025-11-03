@@ -75,9 +75,13 @@ export function useDiceRollsStorage() {
 
   const loadRolls = useCallback(() => {
     // Only return completed rolls
-    return storedRolls.filter(
-      (roll) => roll.dice && roll.dice.every((die) => !die.isRolling)
-    );
+    // Ensure backward compatibility: add diceCount if missing (default to dice.length)
+    return storedRolls
+      .filter((roll) => roll.dice && roll.dice.every((die) => !die.isRolling))
+      .map((roll) => ({
+        ...roll,
+        diceCount: roll.diceCount ?? roll.dice.length,
+      }));
   }, [storedRolls]);
 
   return { saveRolls, loadRolls };
