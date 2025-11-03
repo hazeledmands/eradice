@@ -21,12 +21,8 @@ export default function DiceTray({ roll }: DiceTrayProps) {
   const modifier = roll?.modifier || 0;
   const diceCount = roll?.diceCount || 0;
   
-  // Track die states: "rolling" | "stopped"
-  const [dieStates, setDieStates] = useState<Record<number, 'rolling' | 'stopped'>>({});
   // Track which dice should be rolling (controlled by sequential animation logic)
   const [diceRollingStates, setDiceRollingStates] = useState<Record<number, boolean>>({});
-  // Track if this roll has been initialized
-  const [isInitialized, setIsInitialized] = useState(false);
   // Track if all dice have completed
   const [isComplete, setIsComplete] = useState(false);
   
@@ -36,9 +32,7 @@ export default function DiceTray({ roll }: DiceTrayProps) {
   // Reset state when roll changes
   useEffect(() => {
     if (!roll) {
-      setIsInitialized(false);
       setIsComplete(false);
-      setDieStates({});
       setDiceRollingStates({});
       return;
     }
@@ -46,9 +40,7 @@ export default function DiceTray({ roll }: DiceTrayProps) {
     // If this is a new roll (different ID), reset everything
     if (prevRollIdRef.current !== roll.id) {
       prevRollIdRef.current = roll.id;
-      setIsInitialized(false);
       setIsComplete(false);
-      setDieStates({});
       setDiceRollingStates({});
       
       // Clear all existing timeouts
@@ -61,9 +53,7 @@ export default function DiceTray({ roll }: DiceTrayProps) {
 
   // Initialize new roll: start only the first diceCount dice rolling
   useEffect(() => {
-    if (!roll || !dice.length || isInitialized) return;
-
-    setIsInitialized(true);
+    if (!roll || !dice.length) return;
     
     // Start only the first diceCount dice rolling
     const initialDice = dice.slice(0, diceCount);
@@ -72,7 +62,7 @@ export default function DiceTray({ roll }: DiceTrayProps) {
       newRollingStates[die.id] = true;
     });
     setDiceRollingStates(newRollingStates);
-  }, [roll, dice, diceCount, isInitialized]);
+  }, [roll, dice, diceCount]);
 
   // Handle die stopped - manages sequential animation logic
   const handleDieStopped = useCallback((dieId: number) => {
@@ -125,20 +115,15 @@ export default function DiceTray({ roll }: DiceTrayProps) {
     });
   }, [roll, dice, diceCount]);
 
-  // Initialize die states and set up timeouts when dice start rolling
+  // Set up timeouts when dice start rolling
   useEffect(() => {
     dice.forEach((die) => {
-      const currentState = dieStates[die.id];
       const shouldBeRolling = diceRollingStates[die.id] === true;
+      const hasTimeout = timeoutRefs.current[die.id] !== undefined;
 
-      // If die should be rolling but isn't in state yet, start it
-      if (shouldBeRolling && currentState !== 'rolling') {
-        setDieStates((prev) => ({
-          ...prev,
-          [die.id]: 'rolling',
-        }));
-
-        // Clear any existing timeout for this die
+      // If die should be rolling but doesn't have a timeout yet, start it
+      if (shouldBeRolling && !hasTimeout) {
+        // Clear any existing timeout for this die (safety check)
         if (timeoutRefs.current[die.id]) {
           clearTimeout(timeoutRefs.current[die.id]);
         }
@@ -146,36 +131,18 @@ export default function DiceTray({ roll }: DiceTrayProps) {
         // Set timeout to stop the die after stopAfter duration
         const duration = die.stopAfter || generateRollDuration();
         timeoutRefs.current[die.id] = setTimeout(() => {
-          // Update state to stopped
-          setDieStates((prev) => ({
-            ...prev,
-            [die.id]: 'stopped',
-          }));
-
           // Notify that this die has stopped (handles sequential animation)
           handleDieStopped(die.id);
 
           // Clean up timeout ref
           delete timeoutRefs.current[die.id];
         }, duration);
-      } else if (!shouldBeRolling && currentState === 'rolling') {
-        // If die should not be rolling, stop it
-        setDieStates((prev) => ({
-          ...prev,
-          [die.id]: 'stopped',
-        }));
-
-        // Clear timeout
+      } else if (!shouldBeRolling && hasTimeout) {
+        // If die should not be rolling, clear its timeout
         if (timeoutRefs.current[die.id]) {
           clearTimeout(timeoutRefs.current[die.id]);
           delete timeoutRefs.current[die.id];
         }
-      } else if (!shouldBeRolling && currentState === undefined) {
-        // Initialize stopped dice
-        setDieStates((prev) => ({
-          ...prev,
-          [die.id]: 'stopped',
-        }));
       }
     });
 
@@ -185,7 +152,7 @@ export default function DiceTray({ roll }: DiceTrayProps) {
         clearTimeout(timeout);
       });
     };
-  }, [dice, dieStates, diceRollingStates, handleDieStopped]);
+  }, [dice, diceRollingStates, handleDieStopped]);
 
   // Use finalNumber for calculations (available immediately, not waiting for animation)
   // Can calculate result even while dice are still animating
@@ -221,8 +188,7 @@ export default function DiceTray({ roll }: DiceTrayProps) {
     <div className={styles.DiceTray}>
       <div className={styles.controls}>
         {dice.map((die) => {
-          const dieState =
-            dieStates[die.id] || (diceRollingStates[die.id] === true ? 'rolling' : 'stopped');
+          const dieState = diceRollingStates[die.id] === true ? 'rolling' : 'stopped';
           return (
             <Die
               key={die.id}

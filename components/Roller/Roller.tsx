@@ -30,7 +30,8 @@ export default function Roller() {
     if (inputRef.current) {
       inputRef.current.focus();
     }
-  }, [loadRolls]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   useEffect(() => {
     // Save rolls to session storage whenever rolls change
