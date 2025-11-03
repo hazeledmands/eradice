@@ -1,5 +1,9 @@
 import * as Random from 'random-js';
-import { ROLL_DURATION_MIN, ROLL_DURATION_RANGE } from '../constants/dice';
+
+// Animation constants
+const ROLL_DURATION_MIN = 500;
+const ROLL_DURATION_MAX = 1500;
+const ROLL_DURATION_RANGE = ROLL_DURATION_MAX - ROLL_DURATION_MIN;
 
 /**
  * Generates a random duration for dice rolling animation

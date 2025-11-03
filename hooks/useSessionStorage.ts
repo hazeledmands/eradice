@@ -1,6 +1,10 @@
 import { useState, useCallback } from 'react';
-import { STORAGE_KEYS } from '../constants/storage';
 import type { Roll } from '../types/dice';
+
+// Storage-related constants
+const STORAGE_KEYS = {
+  DICE_ROLLS: 'diceRolls',
+} as const;
 
 /**
  * Custom hook for managing session storage

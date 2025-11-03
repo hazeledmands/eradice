@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateRandomFace } from '../../utils/randomGenerator';
-import { DICE_UPDATE_INTERVAL } from '../../constants/dice';
 import type { DieState } from '../../types/dice';
 import styles from './Die.module.css';
+
+// Animation frame throttling (milliseconds between updates)
+const DICE_UPDATE_INTERVAL = 50;
 
 interface DieProps {
   state: DieState;

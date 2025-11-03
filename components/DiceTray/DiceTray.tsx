@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Die from '../Die/Die';
-import { EXPLODE_SUCCESS_VALUE, EXPLODE_FAIL_VALUE } from '../../constants/dice';
 import { generateRollDuration, generateRandomFace } from '../../utils/randomGenerator';
 import { calculateRollResult, generateCopyText } from '../../utils/diceCalculations';
 import { copyToClipboard } from '../../utils/clipboard';
 import type { Roll, Die as DieType } from '../../types/dice';
 import styles from './DiceTray.module.css';
+
+// Dice-related constants
+const EXPLODE_SUCCESS_VALUE = 6;
+const EXPLODE_FAIL_VALUE = 1;
 
 interface DiceTrayProps {
   roll: Roll | null;
