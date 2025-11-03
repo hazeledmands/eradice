@@ -22,7 +22,7 @@ export default function DiceTray({ roll }: DiceTrayProps) {
   const diceCount = roll?.diceCount || 0;
   
   // Track which dice should be rolling (controlled by sequential animation logic)
-  const [diceRollingStates, setDiceRollingStates] = useState<Record<number, boolean>>({});
+  const [diceRollingStates, setDiceRollingStates] = useState<boolean[]>([]);
   // Track if all dice have completed
   const [isComplete, setIsComplete] = useState(false);
   
@@ -33,7 +33,7 @@ export default function DiceTray({ roll }: DiceTrayProps) {
   useEffect(() => {
     if (!roll) {
       setIsComplete(false);
-      setDiceRollingStates({});
+      setDiceRollingStates([]);
       return;
     }
 
@@ -41,7 +41,7 @@ export default function DiceTray({ roll }: DiceTrayProps) {
     if (prevRollIdRef.current !== roll.id) {
       prevRollIdRef.current = roll.id;
       setIsComplete(false);
-      setDiceRollingStates({});
+      setDiceRollingStates([]);
       
       // Clear all existing timeouts
       Object.values(timeoutRefs.current).forEach((timeout) => {
@@ -56,56 +56,45 @@ export default function DiceTray({ roll }: DiceTrayProps) {
     if (!roll || !dice.length) return;
     
     // Start only the first diceCount dice rolling
-    const initialDice = dice.slice(0, diceCount);
-    const newRollingStates: Record<number, boolean> = {};
-    initialDice.forEach((die) => {
-      newRollingStates[die.id] = true;
-    });
+    const newRollingStates = new Array<boolean>(dice.length).fill(false);
+    for (let i = 0; i < diceCount; i++) {
+      newRollingStates[i] = true;
+    }
     setDiceRollingStates(newRollingStates);
   }, [roll, dice, diceCount]);
 
   // Handle die stopped - manages sequential animation logic
-  const handleDieStopped = useCallback((dieId: number) => {
+  const handleDieStopped = useCallback((dieIndex: number) => {
     if (!roll) return;
 
     // Update the rolling state for this specific die
     setDiceRollingStates((prevState) => {
-      const updated = { ...prevState };
-      updated[dieId] = false;
-
-      // Find which die index this was
-      const dieIndex = dice.findIndex((d) => d.id === dieId);
+      const updated = [...prevState];
+      updated[dieIndex] = false;
       
       // Check if all initial diceCount dice have completed
-      const initialDice = dice.slice(0, diceCount);
-      const allInitialDiceStopped = initialDice.every(
-        (die) => updated[die.id] === false || updated[die.id] === undefined
-      );
+      const allInitialDiceStopped = updated
+        .slice(0, diceCount)
+        .every((isRolling) => !isRolling);
       
       // If all initial dice have stopped and we haven't started exploding dice yet,
       // start the first exploding die
       if (allInitialDiceStopped && dieIndex < diceCount && dice.length > diceCount) {
-        const firstExplodingDie = dice[diceCount];
-        if (firstExplodingDie && updated[firstExplodingDie.id] === undefined) {
-          updated[firstExplodingDie.id] = true;
+        if (!updated[diceCount]) {
+          updated[diceCount] = true;
         }
       }
       
       // If this was an exploding die, start the next one if it exists
       if (dieIndex >= diceCount) {
         const nextIndex = dieIndex + 1;
-        if (nextIndex < dice.length) {
-          const nextExplodingDie = dice[nextIndex];
-          if (nextExplodingDie && updated[nextExplodingDie.id] === undefined) {
-            updated[nextExplodingDie.id] = true;
-          }
+        if (nextIndex < dice.length && !updated[nextIndex]) {
+          updated[nextIndex] = true;
         }
       }
 
       // Check if all dice are now complete
-      const allStopped = dice.every(
-        (die) => updated[die.id] === false || updated[die.id] === undefined
-      );
+      const allStopped = updated.every((isRolling) => !isRolling);
       
       if (allStopped) {
         setIsComplete(true);
@@ -117,31 +106,31 @@ export default function DiceTray({ roll }: DiceTrayProps) {
 
   // Set up timeouts when dice start rolling
   useEffect(() => {
-    dice.forEach((die) => {
-      const shouldBeRolling = diceRollingStates[die.id] === true;
-      const hasTimeout = timeoutRefs.current[die.id] !== undefined;
+    dice.forEach((die, dieIndex) => {
+      const shouldBeRolling = diceRollingStates[dieIndex] === true;
+      const hasTimeout = timeoutRefs.current[dieIndex] !== undefined;
 
       // If die should be rolling but doesn't have a timeout yet, start it
       if (shouldBeRolling && !hasTimeout) {
         // Clear any existing timeout for this die (safety check)
-        if (timeoutRefs.current[die.id]) {
-          clearTimeout(timeoutRefs.current[die.id]);
+        if (timeoutRefs.current[dieIndex]) {
+          clearTimeout(timeoutRefs.current[dieIndex]);
         }
 
         // Set timeout to stop the die after stopAfter duration
         const duration = die.stopAfter || generateRollDuration();
-        timeoutRefs.current[die.id] = setTimeout(() => {
+        timeoutRefs.current[dieIndex] = setTimeout(() => {
           // Notify that this die has stopped (handles sequential animation)
-          handleDieStopped(die.id);
+          handleDieStopped(dieIndex);
 
           // Clean up timeout ref
-          delete timeoutRefs.current[die.id];
+          delete timeoutRefs.current[dieIndex];
         }, duration);
       } else if (!shouldBeRolling && hasTimeout) {
         // If die should not be rolling, clear its timeout
-        if (timeoutRefs.current[die.id]) {
-          clearTimeout(timeoutRefs.current[die.id]);
-          delete timeoutRefs.current[die.id];
+        if (timeoutRefs.current[dieIndex]) {
+          clearTimeout(timeoutRefs.current[dieIndex]);
+          delete timeoutRefs.current[dieIndex];
         }
       }
     });
@@ -187,8 +176,8 @@ export default function DiceTray({ roll }: DiceTrayProps) {
   return (
     <div className={styles.DiceTray}>
       <div className={styles.controls}>
-        {dice.map((die) => {
-          const dieState = diceRollingStates[die.id] === true ? 'rolling' : 'stopped';
+        {dice.map((die, dieIndex) => {
+          const dieState = diceRollingStates[dieIndex] === true ? 'rolling' : 'stopped';
           return (
             <Die
               key={die.id}

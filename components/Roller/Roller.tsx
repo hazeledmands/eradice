@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Ledger from '../Ledger/Ledger';
 import DiceTray from '../DiceTray/DiceTray';
 import { parseDiceNotation, createDiceArray } from '../../dice/parser';
@@ -69,6 +69,11 @@ export default function Roller() {
     setDiceCount(0);
   };
 
+  // Memoize the preview roll object to prevent unnecessary re-renders in DiceTray
+  const previewRoll = useMemo(() => {
+    if (!text || !dice.length) return null;
+    return { id: 0, text, dice, modifier, diceCount };
+  }, [text, dice, modifier, diceCount]);
 
   return (
     <div className={styles.Roller}>
@@ -90,7 +95,7 @@ export default function Roller() {
         </div>
       </form>
 
-      {text && <DiceTray roll={{ id: 0, text, dice, modifier, diceCount }} />}
+      {previewRoll && <DiceTray roll={previewRoll} />}
 
       <Ledger rolls={rolls} />
     </div>
