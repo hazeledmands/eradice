@@ -147,3 +147,14 @@
     max-width: 120px;
   }
 }
+
+@media (max-width: 360px) {
+  .RoomBar {
+    padding: 0.4rem 0.5rem;
+    gap: 0.35rem;
+  }
+
+  .nicknameInput {
+    width: 100px;
+  }
+}

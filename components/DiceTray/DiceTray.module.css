@@ -44,6 +44,7 @@
   font-family: 'Rajdhani', sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
+  min-height: 44px;
   padding: 0.5rem 1rem;
   background: rgba(8, 18, 28, 0.9);
   color: #00ffaa;
@@ -84,9 +85,18 @@
     padding: 0.4rem 0.75rem;
   }
 
-  .bottomRow {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
+}
+
+@media (max-width: 360px) {
+  .DiceTray {
+    padding: 0.75rem;
+  }
+
+  .controls {
+    gap: 0.35rem;
+  }
+
+  .Math {
+    font-size: 1.1rem;
   }
 }

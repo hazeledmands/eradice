@@ -82,3 +82,13 @@
     width: 100%;
   }
 }
+
+@media (max-width: 360px) {
+  .Ledger :global(li) {
+    padding: 0.75rem;
+  }
+
+  .Ledger {
+    margin-top: 2rem;
+  }
+}

@@ -221,6 +221,16 @@
   }
 }
 
+@media (max-width: 360px) {
+  .Roller {
+    padding: 1rem;
+  }
+
+  .Roller :global(label) {
+    font-size: 0.95rem;
+  }
+}
+
 @media (max-width: 420px) {
   .inputRow {
     flex-wrap: wrap;
