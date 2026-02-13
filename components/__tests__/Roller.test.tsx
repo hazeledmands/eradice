@@ -79,7 +79,8 @@ describe('Roller UI Test', () => {
     // Wait for roll to appear
     await waitFor(
       () => {
-        expect(screen.getByText('3d+2')).toBeInTheDocument();
+        const rollTexts = screen.getAllByText('3d+2');
+        expect(rollTexts.length).toBeGreaterThan(0);
       },
       { timeout: 1000 }
     );

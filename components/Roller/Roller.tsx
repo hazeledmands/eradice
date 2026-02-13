@@ -58,7 +58,7 @@ export default function Roller() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (text.length === 0) return;
+    if (text.length === 0 || dice.length === 0) return;
 
     const newRoll = createRoll(text, dice, modifier, diceCount);
 

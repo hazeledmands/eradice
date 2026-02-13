@@ -107,7 +107,8 @@ export default function DiceTray({ roll }: DiceTrayProps) {
   // Show calculation as soon as we have finalNumbers (can show while animating)
   const hasAllFinalNumbers =
     (roll?.dice || []).length > 0 && (roll?.dice || []).every((die) => die.finalNumber != null);
-  if (hasAllFinalNumbers && (roll?.dice || []).length > 1) mathText.push(`= ${totalFaces}`);
+  const hasCancelledDice = (roll?.dice || []).some((die) => die.isCancelled);
+  if (hasAllFinalNumbers && ((roll?.dice || []).length > 1 || hasCancelledDice)) mathText.push(`= ${totalFaces}`);
   if ((roll?.modifier || 0) > 0) mathText.push(`+ ${roll?.modifier || 0}`);
   if (hasAllFinalNumbers && (roll?.modifier || 0) > 0)
     mathText.push(`= ${(roll?.modifier || 0) + totalFaces}`);

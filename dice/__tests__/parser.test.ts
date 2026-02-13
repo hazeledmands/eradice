@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import { parseDiceNotation } from '../parser';
+import { parseDiceNotation, MAX_DICE_COUNT } from '../parser';
 
 describe('parseDiceNotation - Property-Based Tests', () => {
   /**
@@ -13,7 +13,7 @@ describe('parseDiceNotation - Property-Based Tests', () => {
 
     fc.assert(
       fc.property(
-        fc.integer({ min: 0, max: 1000 }), // dice count (includes 0)
+        fc.integer({ min: 1, max: 99 }), // dice count (must be at least 1)
         fc.boolean(), // whether to include modifier
         fc.integer({ min: 0, max: 1000 }), // modifier value
         fc.constantFrom('d', 'D'), // case-insensitive 'd' character
@@ -69,12 +69,39 @@ describe('parseDiceNotation - Property-Based Tests', () => {
   });
 
   /**
+   * Property 2b: Zero dice count should return null
+   */
+  it('should return null for zero dice count', () => {
+    const result = parseDiceNotation('0d');
+    expect(result).toBeNull();
+
+    const resultWithModifier = parseDiceNotation('0d+5');
+    expect(resultWithModifier).toBeNull();
+  });
+
+  /**
+   * Property 2c: Dice count exceeding MAX_DICE_COUNT should return null
+   */
+  it('should return null when dice count exceeds maximum', () => {
+    const result = parseDiceNotation(`${MAX_DICE_COUNT + 1}d`);
+    expect(result).toBeNull();
+
+    const result1000 = parseDiceNotation('1000d');
+    expect(result1000).toBeNull();
+
+    // At the limit should still work
+    const resultAtMax = parseDiceNotation(`${MAX_DICE_COUNT}d`);
+    expect(resultAtMax).not.toBeNull();
+    expect(resultAtMax?.diceCount).toBe(MAX_DICE_COUNT);
+  });
+
+  /**
    * Property 3: Parsed values should be integers
    */
   it('should always return integer values for diceCount and modifier', () => {
     fc.assert(
       fc.property(
-        fc.integer({ min: 0, max: 1000 }),
+        fc.integer({ min: 1, max: 99 }),
         fc.boolean(),
         fc.integer({ min: 0, max: 1000 }),
         (diceCount, includeModifier, modifier) => {
@@ -96,7 +123,7 @@ describe('parseDiceNotation - Property-Based Tests', () => {
   it('should consistently parse the same notation multiple times', () => {
     fc.assert(
       fc.property(
-        fc.integer({ min: 0, max: 1000 }),
+        fc.integer({ min: 1, max: 99 }),
         fc.boolean(),
         fc.integer({ min: 0, max: 1000 }),
         (diceCount, includeModifier, modifier) => {

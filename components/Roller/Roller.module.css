@@ -213,3 +213,13 @@
   }
 }
 
+@media (max-width: 420px) {
+  .inputRow {
+    flex-wrap: wrap;
+  }
+
+  .Roller :global(button[type="submit"]) {
+    width: 100%;
+  }
+}
+

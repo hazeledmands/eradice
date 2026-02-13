@@ -1,5 +1,7 @@
 import type { ParsedRollNotation, Die } from './types';
 
+export const MAX_DICE_COUNT = 99;
+
 /**
  * Parses dice notation string (e.g., "3d+2" or "5d")
  * @param text - Dice notation string
@@ -14,6 +16,10 @@ export function parseDiceNotation(text: string): ParsedRollNotation | null {
   }
 
   const diceCount = parseInt(result.groups.dice, 10);
+  if (diceCount < 1 || diceCount > MAX_DICE_COUNT) {
+    return null;
+  }
+
   const modifier = result.groups.modifier == null ? 0 : parseInt(result.groups.modifier, 10);
 
   return { diceCount, modifier };
