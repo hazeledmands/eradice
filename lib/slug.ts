@@ -1,13 +1,17 @@
-const words = [
-  'brave', 'swift', 'iron', 'frost', 'ember',
-  'storm', 'shadow', 'crystal', 'amber', 'jade',
-  'dragon', 'falcon', 'wolf', 'raven', 'phoenix',
-  'viper', 'hawk', 'tiger', 'owl', 'stag',
+const roomWords = [
+  'iridescent', 'lowdii', 'vir', 'tethys', 'triton',
+  'zera', 'wayfarer', 'spindle', 'substrate', 'nebula',
+  'qbit', 'cloud', 'oliram', 'diem', 'vastness',
+  'starlane', 'rift', 'torres', 'vector', 'drifter',
 ];
 
+function pickWord(): string {
+  return roomWords[Math.floor(Math.random() * roomWords.length)];
+}
+
 export function generateSlug(): string {
-  const a = words[Math.floor(Math.random() * words.length)];
-  const b = words[Math.floor(Math.random() * words.length)];
+  const a = pickWord();
+  const b = pickWord();
   const n = Math.floor(Math.random() * 100);
   return `${a}-${b}-${n}`;
 }

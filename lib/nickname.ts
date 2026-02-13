@@ -1,15 +1,15 @@
-const adjectives = [
-  'Swift', 'Bronze', 'Silent', 'Crimson', 'Iron',
-  'Amber', 'Shadow', 'Golden', 'Frost', 'Storm',
-  'Brave', 'Crystal', 'Ember', 'Jade', 'Silver',
-  'Mystic', 'Cobalt', 'Scarlet', 'Onyx', 'Violet',
+const epithets = [
+  'Iridescent', 'Nebula', 'Wayfarer', 'Substrate', 'Lowdii',
+  'Virbound', 'Driftborn', 'Torchline', 'Starseam', 'Voidglass',
+  'Tethys', 'Triton', 'Zera', 'Annihilation', 'Prototypian',
+  'Cloudsent', 'Oliramic', 'Diemic', 'Qbit', 'Spindle',
 ];
 
-const nouns = [
-  'Dragon', 'Falcon', 'Wolf', 'Raven', 'Phoenix',
-  'Viper', 'Hawk', 'Bear', 'Lynx', 'Fox',
-  'Tiger', 'Otter', 'Owl', 'Crane', 'Stag',
-  'Serpent', 'Panther', 'Eagle', 'Badger', 'Sphinx',
+const callsigns = [
+  'Pilot', 'Navigator', 'Corsair', 'Archivist', 'Runner',
+  'Broker', 'Dreamer', 'Warden', 'Signal', 'Cipher',
+  'Nomad', 'Jockey', 'Smuggler', 'Rider', 'Mechanist',
+  'Diver', 'Vector', 'Ghost', 'Harbormaster', 'Oracle',
 ];
 
 function pick<T>(arr: T[]): T {
@@ -17,5 +17,5 @@ function pick<T>(arr: T[]): T {
 }
 
 export function generateNickname(): string {
-  return `${pick(adjectives)} ${pick(nouns)}`;
+  return `${pick(epithets)} ${pick(callsigns)}`;
 }
