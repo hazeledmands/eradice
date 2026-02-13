@@ -109,7 +109,7 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
 
   const handleCreateRoom = () => {
     const slug = generateSlug();
-    joinRoom(slug);
+    // Don't call joinRoom here — the URL change triggers the useEffect which calls joinRoom
     onRoomCreated?.(slug);
   };
 

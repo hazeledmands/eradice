@@ -15,6 +15,7 @@ export function useRoom() {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const joinOpRef = useRef(0);
 
   const cleanup = useCallback(() => {
     if (channelRef.current && supabase) {
@@ -30,6 +31,10 @@ export function useRoom() {
       return;
     }
 
+    // Guard against concurrent joins (React strict mode, double-calls, etc.)
+    const opId = ++joinOpRef.current;
+    const isStale = () => opId !== joinOpRef.current;
+
     setError(null);
     cleanup();
 
@@ -41,6 +46,8 @@ export function useRoom() {
       .eq('slug', slug)
       .maybeSingle();
 
+    if (isStale()) return;
+
     if (existing) {
       roomData = existing;
     } else {
@@ -50,6 +57,8 @@ export function useRoom() {
         .select('id, slug')
         .single();
 
+      if (isStale()) return;
+
       if (createErr || !created) {
         // Handle race condition: room may have been created between SELECT and INSERT
         const { data: retry } = await supabase
@@ -57,6 +66,7 @@ export function useRoom() {
           .select('id, slug')
           .eq('slug', slug)
           .maybeSingle();
+        if (isStale()) return;
         if (retry) {
           roomData = retry;
         } else {
@@ -76,6 +86,8 @@ export function useRoom() {
       .select('*')
       .eq('room_id', roomData.id)
       .order('created_at', { ascending: true });
+
+    if (isStale()) return;
 
     const history: RoomRoll[] = (historyRows ?? []).map((row) => ({
       ...(row.roll_data as Roll),
