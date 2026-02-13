@@ -33,13 +33,18 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
     room,
     roomRolls,
     isConnected,
+    isJoining,
     error: roomError,
+    presenceUsers,
     joinRoom,
     broadcastRoll,
     leaveRoom,
+    updatePresenceNickname,
   } = useRoom();
 
   const isRoomMode = !!room;
+  // Reconnecting = was connected (have a room) but connection dropped and not in initial join
+  const isReconnecting = isRoomMode && !isConnected && !isJoining;
 
   // Join room when roomSlug prop changes (skip if already in this room)
   useEffect(() => {
@@ -71,6 +76,11 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
       saveRolls(rolls);
     }
   }, [rolls, saveRolls, isRoomMode]);
+
+  const handleNicknameChange = (name: string) => {
+    setNickname(name);
+    updatePresenceNickname(name);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputText = e.target.value;
@@ -121,6 +131,14 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
     }
   };
 
+  const handleRetry = () => {
+    if (roomSlug) {
+      joinRoom(roomSlug);
+    } else if (room?.slug) {
+      joinRoom(room.slug);
+    }
+  };
+
   // Memoize the preview roll object to prevent unnecessary re-renders in DiceTray
   const previewRoll = useMemo(() => {
     if (!text || !dice.length) return null;
@@ -137,13 +155,24 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
           slug={room.slug}
           nickname={nickname}
           isConnected={isConnected}
-          onNicknameChange={setNickname}
+          isReconnecting={isReconnecting}
+          presenceUsers={presenceUsers}
+          onNicknameChange={handleNicknameChange}
           onLeave={handleLeaveRoom}
         />
       )}
 
+      {isJoining && (
+        <div className={styles.roomJoining}>Joining room...</div>
+      )}
+
       {roomError && (
-        <div className={styles.roomError}>{roomError}</div>
+        <div className={styles.roomError}>
+          {roomError}
+          <button className={styles.retryButton} onClick={handleRetry}>
+            Retry
+          </button>
+        </div>
       )}
 
       <form onSubmit={handleSubmit}>

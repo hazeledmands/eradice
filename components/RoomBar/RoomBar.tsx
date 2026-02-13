@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { copyToClipboard } from '../../utils/clipboard';
+import type { PresenceUser } from '../../hooks/useRoom';
 import styles from './RoomBar.module.css';
 
 interface RoomBarProps {
   slug: string;
   nickname: string;
   isConnected: boolean;
+  isReconnecting: boolean;
+  presenceUsers: PresenceUser[];
   onNicknameChange: (name: string) => void;
   onLeave: () => void;
 }
 
-export default function RoomBar({ slug, nickname, isConnected, onNicknameChange, onLeave }: RoomBarProps) {
+export default function RoomBar({ slug, nickname, isConnected, isReconnecting, presenceUsers, onNicknameChange, onLeave }: RoomBarProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(nickname);
   const [copied, setCopied] = useState(false);
@@ -39,9 +42,31 @@ export default function RoomBar({ slug, nickname, isConnected, onNicknameChange,
   return (
     <div className={styles.RoomBar}>
       <div className={styles.roomInfo}>
-        <span className={styles.status} data-connected={isConnected} />
+        <span
+          className={styles.status}
+          data-connected={isConnected}
+          data-reconnecting={isReconnecting}
+        />
         <span className={styles.slug}>{slug}</span>
+        {isReconnecting && (
+          <span className={styles.reconnecting}>Reconnecting...</span>
+        )}
       </div>
+
+      {presenceUsers.length > 0 && (
+        <div className={styles.presenceSection}>
+          <span className={styles.presenceCount}>{presenceUsers.length}</span>
+          <span className={styles.presenceLabel}>
+            {presenceUsers.length === 1 ? 'user' : 'users'}
+          </span>
+          <span
+            className={styles.presenceList}
+            title={[...new Set(presenceUsers.map((u) => u.nickname))].join(', ')}
+          >
+            {[...new Set(presenceUsers.map((u) => u.nickname))].join(', ')}
+          </span>
+        </div>
+      )}
 
       <div className={styles.nicknameSection}>
         {editing ? (

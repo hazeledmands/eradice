@@ -31,9 +31,52 @@
   box-shadow: 0 0 6px rgba(0, 255, 136, 0.8);
 }
 
+.status[data-reconnecting="true"] {
+  background: #ffaa00;
+  box-shadow: 0 0 6px rgba(255, 170, 0, 0.8);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 .slug {
   color: #00ffff;
   text-shadow: 0 0 6px rgba(0, 255, 255, 0.5);
+}
+
+.reconnecting {
+  color: #ffaa00;
+  font-size: 0.75rem;
+  text-shadow: 0 0 4px rgba(255, 170, 0, 0.5);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.presenceSection {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: rgba(0, 255, 255, 0.6);
+  font-size: 0.75rem;
+}
+
+.presenceCount {
+  color: #00ffaa;
+  font-weight: bold;
+}
+
+.presenceLabel {
+  color: rgba(0, 255, 255, 0.5);
+}
+
+.presenceList {
+  color: rgba(0, 255, 170, 0.7);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .nicknameSection {
@@ -99,5 +142,9 @@
 
   .nicknameSection {
     margin-left: 0;
+  }
+
+  .presenceList {
+    max-width: 120px;
   }
 }
