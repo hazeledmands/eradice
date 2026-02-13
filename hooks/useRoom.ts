@@ -39,7 +39,7 @@ export function useRoom() {
       .from('rooms')
       .select('id, slug')
       .eq('slug', slug)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       roomData = existing;
@@ -51,10 +51,21 @@ export function useRoom() {
         .single();
 
       if (createErr || !created) {
-        setError('Failed to create room');
-        return;
+        // Handle race condition: room may have been created between SELECT and INSERT
+        const { data: retry } = await supabase
+          .from('rooms')
+          .select('id, slug')
+          .eq('slug', slug)
+          .maybeSingle();
+        if (retry) {
+          roomData = retry;
+        } else {
+          setError('Failed to create room');
+          return;
+        }
+      } else {
+        roomData = created;
       }
-      roomData = created;
     }
 
     setRoom(roomData);
@@ -74,23 +85,26 @@ export function useRoom() {
     }));
     setRoomRolls(history);
 
-    // Subscribe to new rolls
+    // Subscribe to new rolls (filter client-side; Supabase Realtime UUID filters can be unreliable)
+    const roomId = roomData.id;
     const channel = supabase
-      .channel(`room:${roomData.id}`)
+      .channel(`room:${roomId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'room_rolls',
-          filter: `room_id=eq.${roomData.id}`,
         },
         (payload) => {
           const row = payload.new as {
+            room_id: string;
             roll_id: number;
             user_nickname: string;
             roll_data: Roll;
           };
+          // Client-side filter: only process rolls for this room
+          if (row.room_id !== roomId) return;
           const incoming: RoomRoll = {
             ...row.roll_data,
             nickname: row.user_nickname,

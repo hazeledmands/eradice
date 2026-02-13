@@ -41,9 +41,9 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
 
   const isRoomMode = !!room;
 
-  // Join room when roomSlug prop changes
+  // Join room when roomSlug prop changes (skip if already in this room)
   useEffect(() => {
-    if (roomSlug && supabaseEnabled) {
+    if (roomSlug && supabaseEnabled && room?.slug !== roomSlug) {
       joinRoom(roomSlug);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
