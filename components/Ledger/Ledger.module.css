@@ -37,6 +37,17 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.nickname {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #00ffaa;
+  text-shadow: 0 0 6px rgba(0, 255, 170, 0.6);
+  width: 100%;
+  margin-bottom: 0.25rem;
 }
 
 .text {

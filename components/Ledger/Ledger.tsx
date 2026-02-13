@@ -1,17 +1,18 @@
 import React from 'react';
 import DiceTray from '../DiceTray/DiceTray';
-import type { Roll } from '../../dice/types';
+import type { Roll, RoomRoll } from '../../dice/types';
 import styles from './Ledger.module.css';
 
 interface LedgerProps {
   rolls: Roll[];
+  isRoomMode?: boolean;
 }
 
 /**
  * Component that displays the history of all rolls
  * Simply renders a list of DiceTray components, each managing its own state timing logic
  */
-export default function Ledger({ rolls }: LedgerProps) {
+export default function Ledger({ rolls, isRoomMode }: LedgerProps) {
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     return date.toLocaleString(undefined, {
@@ -29,6 +30,12 @@ export default function Ledger({ rolls }: LedgerProps) {
         {rolls.map((roll) => (
           <li key={roll.id}>
             <div className={styles.rollHeader}>
+              {isRoomMode && 'nickname' in roll && (
+                <span className={styles.nickname}>
+                  {(roll as RoomRoll).nickname}
+                  {(roll as RoomRoll).isLocal && ' (you)'}
+                </span>
+              )}
               <span className={styles.text}>{roll.text}</span>
               <span className={styles.date}>{formatDate(roll.date)}</span>
             </div>
@@ -39,4 +46,3 @@ export default function Ledger({ rolls }: LedgerProps) {
     </div>
   );
 }
-

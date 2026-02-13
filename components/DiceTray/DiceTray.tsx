@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Die from '../Die/Die';
 import { calculateRollResult, generateCopyText } from '../../dice/calculations';
 import { copyToClipboard } from '../../utils/clipboard';
-import type { Roll } from '../../dice/types';
+import type { Roll, RoomRoll } from '../../dice/types';
 import styles from './DiceTray.module.css';
 
 interface DiceTrayProps {
@@ -24,9 +24,11 @@ export default function DiceTray({ roll }: DiceTrayProps) {
         return;
       }
 
-      // Check if roll is older than a minute - if so, skip animation
+      // For room rolls, use explicit flag instead of age check
       let shouldAnimate = true;
-      if (roll?.date) {
+      if ('shouldAnimate' in roll) {
+        shouldAnimate = (roll as RoomRoll).shouldAnimate;
+      } else if (roll?.date) {
         const rollDate = new Date(roll.date);
         const now = new Date();
         const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
