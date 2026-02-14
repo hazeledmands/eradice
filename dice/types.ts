@@ -34,9 +34,13 @@ export interface Roll extends ParsedRollNotation {
  */
 export type DieState = 'rolling' | 'stopped';
 
+export type RollVisibility = 'shared' | 'secret' | 'hidden';
+
 export interface RoomRoll extends Roll {
   nickname: string;
   isLocal: boolean;       // true = current user's roll
   shouldAnimate: boolean; // false for history loaded on join
+  visibility: RollVisibility;
+  isRevealed?: boolean;
 }
 

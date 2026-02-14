@@ -65,6 +65,79 @@
   margin-left: 1rem;
 }
 
+.secretBadge,
+.hiddenBadge,
+.revealedBadge {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 0.1rem 0.5rem;
+  border-radius: 3px;
+  margin-left: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  height: 1.2em;
+  position: relative;
+  top: -0.05em;
+}
+
+.secretBadge {
+  color: #ffcc44;
+  border: 1px solid rgba(255, 204, 68, 0.4);
+  text-shadow: 0 0 4px rgba(255, 204, 68, 0.3);
+  background: rgba(255, 204, 68, 0.08);
+}
+
+.hiddenBadge {
+  color: #cc44ff;
+  border: 1px solid rgba(204, 68, 255, 0.4);
+  text-shadow: 0 0 4px rgba(204, 68, 255, 0.3);
+  background: rgba(204, 68, 255, 0.08);
+}
+
+.revealedBadge {
+  color: rgba(0, 255, 255, 0.8);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 4px rgba(0, 255, 255, 0.3);
+  background: rgba(0, 255, 255, 0.06);
+}
+
+.secretPlaceholder {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-style: italic;
+  color: rgba(255, 204, 68, 0.7);
+  text-shadow: 0 0 4px rgba(255, 204, 68, 0.2);
+  flex: 1;
+}
+
+.revealButton {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 0.4rem 1.25rem;
+  margin-top: 0.75rem;
+  margin-left: auto;
+  display: block;
+  background: rgba(0, 20, 35, 0.8);
+  color: rgba(0, 255, 255, 0.85);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  text-shadow: 0 0 4px rgba(0, 255, 255, 0.3);
+}
+
+.revealButton:hover {
+  border-color: rgba(0, 255, 255, 0.6);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+}
+
 @media (max-width: 768px) {
   .Ledger :global(li) {
     padding: 1rem;

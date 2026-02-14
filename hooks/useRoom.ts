@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase, supabaseEnabled } from '../lib/supabase';
 import { generateSlug } from '../lib/slug';
-import type { Roll, RoomRoll } from '../dice/types';
+import type { Roll, RoomRoll, RollVisibility } from '../dice/types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface RoomState {
@@ -59,6 +59,8 @@ export function useRoom() {
             roll_id: number;
             user_nickname: string;
             roll_data: Roll;
+            visibility?: string;
+            is_revealed?: boolean;
           };
           if (row.room_id !== roomId) return;
           const incoming: RoomRoll = {
@@ -66,11 +68,34 @@ export function useRoom() {
             nickname: row.user_nickname,
             isLocal: false,
             shouldAnimate: true,
+            visibility: (row.visibility as RollVisibility) || 'shared',
+            isRevealed: row.is_revealed || false,
           };
           setRoomRolls((prev) => {
             if (prev.some((r) => r.id === incoming.id)) return prev;
             return [...prev, incoming];
           });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'room_rolls',
+        },
+        (payload) => {
+          const row = payload.new as {
+            room_id: string;
+            roll_id: number;
+            is_revealed?: boolean;
+          };
+          if (row.room_id !== roomId) return;
+          setRoomRolls((prev) =>
+            prev.map((r) =>
+              r.id === row.roll_id ? { ...r, isRevealed: row.is_revealed || false } : r
+            )
+          );
         }
       )
       .on('presence', { event: 'sync' }, () => {
@@ -132,6 +157,8 @@ export function useRoom() {
       nickname: row.user_nickname,
       isLocal: false,
       shouldAnimate: false,
+      visibility: (row.visibility as RollVisibility) || 'shared',
+      isRevealed: row.is_revealed || false,
     }));
     setRoomRolls(history);
   }, []);
@@ -215,7 +242,7 @@ export function useRoom() {
     return slug;
   }, [joinRoom]);
 
-  const broadcastRoll = useCallback(async (roll: Roll, nickname: string) => {
+  const broadcastRoll = useCallback(async (roll: Roll, nickname: string, visibility: RollVisibility = 'shared') => {
     if (!supabase || !room) return;
 
     const localRoomRoll: RoomRoll = {
@@ -223,6 +250,8 @@ export function useRoom() {
       nickname,
       isLocal: true,
       shouldAnimate: true,
+      visibility,
+      isRevealed: false,
     };
     setRoomRolls((prev) => [...prev, localRoomRoll]);
 
@@ -231,7 +260,24 @@ export function useRoom() {
       roll_id: roll.id,
       user_nickname: nickname,
       roll_data: roll,
+      visibility,
     });
+  }, [room]);
+
+  const revealRoll = useCallback(async (rollId: number) => {
+    if (!supabase || !room) return;
+
+    // Optimistic local update
+    setRoomRolls((prev) =>
+      prev.map((r) => (r.id === rollId ? { ...r, isRevealed: true } : r))
+    );
+
+    // Persist — triggers UPDATE realtime for other clients
+    await supabase
+      .from('room_rolls')
+      .update({ is_revealed: true })
+      .eq('room_id', room.id)
+      .eq('roll_id', rollId);
   }, [room]);
 
   const leaveRoom = useCallback(() => {
@@ -268,6 +314,7 @@ export function useRoom() {
     createRoom,
     joinRoom,
     broadcastRoll,
+    revealRoll,
     leaveRoom,
     updatePresenceNickname,
   };

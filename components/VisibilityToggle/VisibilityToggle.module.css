@@ -1,0 +1,50 @@
+.toggle {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.875rem 1.25rem;
+  background: rgba(0, 10, 20, 0.9);
+  border-radius: 6px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, text-shadow 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.toggle[data-visibility='shared'] {
+  color: rgba(0, 255, 255, 0.8);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 4px rgba(0, 255, 255, 0.3);
+  box-shadow: none;
+}
+
+.toggle[data-visibility='shared']:hover {
+  border-color: rgba(0, 255, 255, 0.6);
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
+}
+
+.toggle[data-visibility='secret'] {
+  color: #ffcc44;
+  border: 1px solid rgba(255, 204, 68, 0.4);
+  text-shadow: 0 0 6px rgba(255, 204, 68, 0.4);
+  box-shadow: 0 0 6px rgba(255, 204, 68, 0.1);
+}
+
+.toggle[data-visibility='secret']:hover {
+  border-color: rgba(255, 204, 68, 0.7);
+  box-shadow: 0 0 12px rgba(255, 204, 68, 0.25);
+}
+
+.toggle[data-visibility='hidden'] {
+  color: #cc44ff;
+  border: 1px solid rgba(204, 68, 255, 0.4);
+  text-shadow: 0 0 6px rgba(204, 68, 255, 0.4);
+  box-shadow: 0 0 6px rgba(204, 68, 255, 0.1);
+}
+
+.toggle[data-visibility='hidden']:hover {
+  border-color: rgba(204, 68, 255, 0.7);
+  box-shadow: 0 0 12px rgba(204, 68, 255, 0.25);
+}

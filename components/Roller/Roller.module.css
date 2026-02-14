@@ -237,6 +237,6 @@
   }
 
   .Roller :global(button[type="submit"]) {
-    width: 100%;
+    flex: 1;
   }
 }

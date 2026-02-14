@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Ledger from '../Ledger/Ledger';
 import DiceTray from '../DiceTray/DiceTray';
 import RoomBar from '../RoomBar/RoomBar';
+import VisibilityToggle from '../VisibilityToggle/VisibilityToggle';
 import { parseDiceNotation, createDiceArray } from '../../dice/parser';
 import { createRoll } from '../../dice/rolls';
 import { useDiceRollsStorage } from '../../hooks/useSessionStorage';
@@ -9,7 +10,7 @@ import { useRoom } from '../../hooks/useRoom';
 import { useNickname } from '../../hooks/useNickname';
 import { supabaseEnabled } from '../../lib/supabase';
 import { generateSlug } from '../../lib/slug';
-import type { Roll, Die } from '../../dice/types';
+import type { Roll, Die, RollVisibility } from '../../dice/types';
 import styles from './Roller.module.css';
 
 interface RollerProps {
@@ -26,6 +27,7 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
   const [dice, setDice] = useState<Die[]>([]);
   const [modifier, setModifier] = useState(0);
   const [diceCount, setDiceCount] = useState(0);
+  const [rollVisibility, setRollVisibility] = useState<RollVisibility>('shared');
   const inputRef = useRef<HTMLInputElement>(null);
   const { saveRolls, loadRolls } = useDiceRollsStorage();
   const { nickname, setNickname } = useNickname();
@@ -38,6 +40,7 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
     presenceUsers,
     joinRoom,
     broadcastRoll,
+    revealRoll,
     leaveRoom,
     updatePresenceNickname,
   } = useRoom();
@@ -63,12 +66,25 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
       }
     }
 
+    // Load saved visibility preference
+    try {
+      const saved = localStorage.getItem('eradice-roll-visibility');
+      if (saved === 'secret' || saved === 'hidden') {
+        setRollVisibility(saved);
+      }
+    } catch { /* ignore */ }
+
     // Auto-focus the input when the page loads
     if (inputRef.current) {
       inputRef.current.focus();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
+
+  const handleVisibilityChange = useCallback((v: RollVisibility) => {
+    setRollVisibility(v);
+    try { localStorage.setItem('eradice-roll-visibility', v); } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     // Save rolls to session storage whenever rolls change (solo mode only)
@@ -107,7 +123,7 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
     const newRoll = createRoll(text, dice, modifier, diceCount);
 
     if (isRoomMode) {
-      broadcastRoll(newRoll, nickname);
+      broadcastRoll(newRoll, nickname, rollVisibility);
     } else {
       setRolls((prevRolls) => [newRoll, ...prevRolls]);
     }
@@ -189,6 +205,12 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
               className={styles.terminalInputField}
             />
           </div>
+          {isRoomMode && (
+            <VisibilityToggle
+              visibility={rollVisibility}
+              onChange={handleVisibilityChange}
+            />
+          )}
           <button type="submit">Roll!</button>
         </div>
       </form>
@@ -205,7 +227,7 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
 
       {previewRoll && <DiceTray roll={previewRoll} />}
 
-      <Ledger rolls={displayRolls} isRoomMode={isRoomMode} />
+      <Ledger rolls={displayRolls} isRoomMode={isRoomMode} onRevealRoll={revealRoll} />
     </div>
   );
 }
