@@ -7,6 +7,7 @@ interface LedgerProps {
   rolls: Roll[];
   isRoomMode?: boolean;
   onRevealRoll?: (rollId: number) => void;
+  onReroll?: (roll: Roll) => void;
 }
 
 function isRoomRoll(roll: Roll): roll is RoomRoll {
@@ -17,7 +18,7 @@ function isRoomRoll(roll: Roll): roll is RoomRoll {
  * Component that displays the history of all rolls
  * Simply renders a list of DiceTray components, each managing its own state timing logic
  */
-export default function Ledger({ rolls, isRoomMode, onRevealRoll }: LedgerProps) {
+export default function Ledger({ rolls, isRoomMode, onRevealRoll, onReroll }: LedgerProps) {
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     return date.toLocaleString(undefined, {
@@ -87,7 +88,7 @@ export default function Ledger({ rolls, isRoomMode, onRevealRoll }: LedgerProps)
                   </>
                 )}
               </div>
-              {!isSecretPlaceholder && <DiceTray roll={roll} />}
+              {!isSecretPlaceholder && <DiceTray roll={roll} onReroll={onReroll} />}
               {showReveal && onRevealRoll && (
                 <button
                   type="button"

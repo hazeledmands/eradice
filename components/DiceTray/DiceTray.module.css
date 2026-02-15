@@ -67,6 +67,39 @@
   box-shadow: 0 0 6px rgba(0, 255, 170, 0.15);
 }
 
+.actionButtons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.rerollButton {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  background: rgba(8, 18, 28, 0.9);
+  color: #00ccff;
+  border: 1px solid rgba(0, 204, 255, 0.35);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 0 6px rgba(0, 204, 255, 0.1);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.rerollButton:hover {
+  border-color: rgba(0, 204, 255, 0.6);
+  box-shadow: 0 0 10px rgba(0, 204, 255, 0.25);
+  color: #33ddff;
+}
+
+.rerollButton:active {
+  box-shadow: 0 0 6px rgba(0, 204, 255, 0.15);
+}
+
 @media (max-width: 768px) {
   .DiceTray {
     padding: 1rem;
@@ -81,6 +114,11 @@
   }
 
   .copyButton {
+    font-size: 0.7rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .rerollButton {
     font-size: 0.7rem;
     padding: 0.4rem 0.75rem;
   }

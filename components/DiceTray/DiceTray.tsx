@@ -7,6 +7,7 @@ import styles from './DiceTray.module.css';
 
 interface DiceTrayProps {
   roll: Roll | null;
+  onReroll?: (roll: Roll) => void;
 }
 
 /**
@@ -15,7 +16,7 @@ interface DiceTrayProps {
  * - Starts first diceCount dice rolling
  * - Then animates exploding dice one by one
  */
-export default function DiceTray({ roll }: DiceTrayProps) {
+export default function DiceTray({ roll, onReroll }: DiceTrayProps) {
   const [diceCompleteStates, setDiceCompleteStates] = useState<boolean[]>([]);
 
   useEffect(() => {
@@ -148,6 +149,7 @@ export default function DiceTray({ roll }: DiceTrayProps) {
       <div className={styles.bottomRow}>
         {isComplete && (<React.Fragment>
           <div className={styles.Math}>{mathText.join(' ')}</div>
+          <div className={styles.actionButtons}>
             <button
               className={styles.copyButton}
               onClick={handleCopy}
@@ -155,6 +157,16 @@ export default function DiceTray({ roll }: DiceTrayProps) {
             >
               Copy
             </button>
+            {onReroll && roll && (
+              <button
+                className={styles.rerollButton}
+                onClick={() => onReroll(roll)}
+                title="Reroll with same dice"
+              >
+                Reroll
+              </button>
+            )}
+          </div>
         </React.Fragment>)}
       </div>
     </div>

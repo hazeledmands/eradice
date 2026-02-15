@@ -140,6 +140,17 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
     setDiceCount(0);
   };
 
+  const handleReroll = useCallback((originalRoll: Roll) => {
+    const newDice = createDiceArray(originalRoll.diceCount);
+    const newRoll = createRoll(originalRoll.text, newDice, originalRoll.modifier, originalRoll.diceCount);
+
+    if (isRoomMode) {
+      broadcastRoll(newRoll, nickname, rollVisibility);
+    } else {
+      setRolls((prevRolls) => [newRoll, ...prevRolls]);
+    }
+  }, [isRoomMode, broadcastRoll, nickname, rollVisibility]);
+
   const handleCreateRoom = () => {
     const slug = generateSlug();
     // Don't call joinRoom here — the URL change triggers the useEffect which calls joinRoom
@@ -234,7 +245,7 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
 
       {previewRoll && <DiceTray roll={previewRoll} />}
 
-      <Ledger rolls={displayRolls} isRoomMode={isRoomMode} onRevealRoll={revealRoll} />
+      <Ledger rolls={displayRolls} isRoomMode={isRoomMode} onRevealRoll={revealRoll} onReroll={handleReroll} />
     </div>
   );
 }
