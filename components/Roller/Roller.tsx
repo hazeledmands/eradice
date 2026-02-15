@@ -57,6 +57,13 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomSlug]);
 
+  // Sync nickname to presence whenever we connect (or reconnect)
+  useEffect(() => {
+    if (isConnected) {
+      updatePresenceNickname(nickname);
+    }
+  }, [isConnected, nickname, updatePresenceNickname]);
+
   useEffect(() => {
     // Load rolls from session storage on mount (solo mode only)
     if (!roomSlug) {
