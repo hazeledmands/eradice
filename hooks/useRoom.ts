@@ -92,9 +92,11 @@ export function useRoom() {
           };
           if (row.room_id !== roomId) return;
           setRoomRolls((prev) =>
-            prev.map((r) =>
-              r.id === row.roll_id ? { ...r, isRevealed: row.is_revealed || false } : r
-            )
+            prev.map((r) => {
+              if (r.id !== row.roll_id) return r;
+              const isRevealed = row.is_revealed || false;
+              return { ...r, isRevealed, shouldAnimate: isRevealed ? false : r.shouldAnimate };
+            })
           );
         }
       )
@@ -267,9 +269,9 @@ export function useRoom() {
   const revealRoll = useCallback(async (rollId: number) => {
     if (!supabase || !room) return;
 
-    // Optimistic local update
+    // Optimistic local update — also clear shouldAnimate so DiceTray doesn't replay
     setRoomRolls((prev) =>
-      prev.map((r) => (r.id === rollId ? { ...r, isRevealed: true } : r))
+      prev.map((r) => (r.id === rollId ? { ...r, isRevealed: true, shouldAnimate: false } : r))
     );
 
     // Persist — triggers UPDATE realtime for other clients
