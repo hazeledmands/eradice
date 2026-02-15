@@ -4,7 +4,7 @@ import DiceTray from '../DiceTray/DiceTray';
 import RoomBar from '../RoomBar/RoomBar';
 import VisibilityToggle from '../VisibilityToggle/VisibilityToggle';
 import { parseDiceNotation, createDiceArray } from '../../dice/parser';
-import { createRoll } from '../../dice/rolls';
+import { createRoll, createCpDice } from '../../dice/rolls';
 import { useDiceRollsStorage } from '../../hooks/useSessionStorage';
 import { useRoom } from '../../hooks/useRoom';
 import { useNickname } from '../../hooks/useNickname';
@@ -41,6 +41,7 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
     joinRoom,
     broadcastRoll,
     revealRoll,
+    broadcastCpSpend,
     leaveRoom,
     updatePresenceNickname,
   } = useRoom();
@@ -151,6 +152,25 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
     }
   }, [isRoomMode, broadcastRoll, nickname, rollVisibility]);
 
+  const handleSpendCp = useCallback((rollId: number, count: number) => {
+    // Find the roll to spend CP on
+    const sourceRolls = isRoomMode ? roomRolls : rolls;
+    const targetRoll = sourceRolls.find((r) => r.id === rollId);
+    if (!targetRoll) return;
+
+    const maxId = Math.max(...targetRoll.dice.map((d) => d.id));
+    const cpDice = createCpDice(count, maxId + 1);
+    const updatedRoll = { ...targetRoll, dice: [...targetRoll.dice, ...cpDice] };
+
+    if (isRoomMode) {
+      broadcastCpSpend(rollId, updatedRoll);
+    } else {
+      setRolls((prevRolls) =>
+        prevRolls.map((r) => (r.id === rollId ? updatedRoll : r))
+      );
+    }
+  }, [isRoomMode, roomRolls, rolls, broadcastCpSpend]);
+
   const handleCreateRoom = () => {
     const slug = generateSlug();
     // Don't call joinRoom here — the URL change triggers the useEffect which calls joinRoom
@@ -245,7 +265,7 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
 
       {previewRoll && <DiceTray roll={previewRoll} />}
 
-      <Ledger rolls={displayRolls} isRoomMode={isRoomMode} onRevealRoll={revealRoll} onReroll={handleReroll} />
+      <Ledger rolls={displayRolls} isRoomMode={isRoomMode} onRevealRoll={revealRoll} onReroll={handleReroll} onSpendCp={handleSpendCp} />
     </div>
   );
 }

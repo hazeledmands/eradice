@@ -100,6 +100,82 @@
   box-shadow: 0 0 6px rgba(0, 204, 255, 0.15);
 }
 
+.cpButton {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  background: rgba(8, 18, 28, 0.9);
+  color: #ffc832;
+  border: 1px solid rgba(255, 200, 50, 0.35);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 0 6px rgba(255, 200, 50, 0.1);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cpButton:hover {
+  border-color: rgba(255, 200, 50, 0.6);
+  box-shadow: 0 0 10px rgba(255, 200, 50, 0.25);
+  color: #ffd54f;
+}
+
+.cpButton:active {
+  box-shadow: 0 0 6px rgba(255, 200, 50, 0.15);
+}
+
+.cpPicker {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.cpPickerButton {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  background: rgba(8, 18, 28, 0.9);
+  color: #ffc832;
+  border: 1px solid rgba(255, 200, 50, 0.35);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 0 6px rgba(255, 200, 50, 0.1);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cpPickerButton:hover {
+  border-color: rgba(255, 200, 50, 0.6);
+  box-shadow: 0 0 10px rgba(255, 200, 50, 0.25);
+  color: #ffd54f;
+}
+
+.cpCancelButton {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0.5rem 0.6rem;
+  background: rgba(8, 18, 28, 0.9);
+  color: #888;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+  line-height: 1;
+}
+
+.cpCancelButton:hover {
+  border-color: rgba(128, 128, 128, 0.5);
+  color: #aaa;
+}
+
 @media (max-width: 768px) {
   .DiceTray {
     padding: 1rem;
@@ -119,6 +195,12 @@
   }
 
   .rerollButton {
+    font-size: 0.7rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .cpButton,
+  .cpPickerButton {
     font-size: 0.7rem;
     padding: 0.4rem 0.75rem;
   }

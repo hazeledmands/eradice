@@ -7,10 +7,11 @@ import styles from './Die.module.css';
 const DICE_UPDATE_INTERVAL = 50;
 
 interface DieProps {
-  state: DieState;
+  state: 'rolling' | 'stopped';
   finalNumber?: number | null;
   isExploding?: boolean;
   isCancelled?: boolean;
+  isCpDie?: boolean;
 }
 
 /**
@@ -22,6 +23,7 @@ export default function Die({
   finalNumber,
   isExploding,
   isCancelled,
+  isCpDie,
 }: DieProps) {
   // Display number - random during rolling, finalNumber when stopped
   const [displayNumber, setDisplayNumber] = useState(generateRandomFace());
@@ -109,7 +111,8 @@ export default function Die({
   }, [state, finalNumber]);
 
   let className = styles.DieView;
-  if (isExploding) className += ` ${styles.exploding}`;
+  if (isCpDie) className += ` ${styles.cpDie}`;
+  else if (isExploding) className += ` ${styles.exploding}`;
   if (isCancelled) className += ` ${styles.cancelled}`;
 
   return <div className={className}>{displayNumber}</div>;

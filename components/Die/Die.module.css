@@ -41,6 +41,17 @@
     0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
+.DieView.cpDie {
+  border-color: rgba(255, 200, 50, 0.6);
+  background: linear-gradient(135deg, #1a1508 0%, #2a2010 50%, #1a1508 100%);
+  color: #ffc832;
+  text-shadow: 0 0 10px rgba(255, 200, 50, 0.7);
+  box-shadow:
+    0 0 12px rgba(255, 200, 50, 0.3),
+    inset 0 0 8px rgba(255, 200, 50, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
 .DieView.cancelled {
   opacity: 0.3;
   filter: grayscale(80%) brightness(0.4);

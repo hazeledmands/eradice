@@ -89,12 +89,21 @@ export function useRoom() {
             room_id: string;
             roll_id: number;
             is_revealed?: boolean;
+            roll_data?: Roll;
           };
           if (row.room_id !== roomId) return;
           setRoomRolls((prev) =>
             prev.map((r) => {
               if (r.id !== row.roll_id) return r;
+              // CP dice appended: dice count changed
+              if (row.roll_data && row.roll_data.dice.length !== r.dice.length) {
+                return { ...r, dice: row.roll_data.dice, shouldAnimate: true };
+              }
               const isRevealed = row.is_revealed || false;
+              // Nothing meaningful changed — return same reference to prevent re-render
+              if (isRevealed === (r.isRevealed || false)) {
+                return r;
+              }
               return { ...r, isRevealed, shouldAnimate: isRevealed ? false : r.shouldAnimate };
             })
           );
@@ -282,6 +291,22 @@ export function useRoom() {
       .eq('roll_id', rollId);
   }, [room]);
 
+  const broadcastCpSpend = useCallback(async (rollId: number, updatedRoll: Roll) => {
+    if (!supabase || !room) return;
+
+    // Optimistic local update
+    setRoomRolls((prev) =>
+      prev.map((r) => (r.id === rollId ? { ...r, dice: updatedRoll.dice, shouldAnimate: true } : r))
+    );
+
+    // Persist — triggers UPDATE realtime for other clients
+    await supabase
+      .from('room_rolls')
+      .update({ roll_data: updatedRoll })
+      .eq('room_id', room.id)
+      .eq('roll_id', rollId);
+  }, [room]);
+
   const leaveRoom = useCallback(() => {
     cleanup();
     setRoom(null);
@@ -317,6 +342,7 @@ export function useRoom() {
     joinRoom,
     broadcastRoll,
     revealRoll,
+    broadcastCpSpend,
     leaveRoom,
     updatePresenceNickname,
   };

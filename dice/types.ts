@@ -7,6 +7,7 @@ export interface Die {
   isCancelled?: boolean;
   canExplodeSucceed?: boolean;
   canExplodeFail?: boolean;
+  isCpDie?: boolean;
   finalNumber?: number | null;
   stopAfter?: number;
 }

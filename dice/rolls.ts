@@ -92,3 +92,55 @@ export function createRoll(
   };
 }
 
+/**
+ * Creates CP (character point) dice to append to an existing roll.
+ * CP dice only explode on 6 (no cancel-on-1). If a CP die rolls 6,
+ * it chain-spawns more dice following the same explosion rules.
+ * @param count - Number of CP dice to create (1 or 2)
+ * @param startingId - Starting ID to avoid collisions with existing dice
+ * @returns Array of CP dice with pre-calculated values
+ */
+export function createCpDice(count: number, startingId: number): Die[] {
+  const cpDice: Die[] = [];
+  let nextId = startingId;
+
+  for (let i = 0; i < count; i++) {
+    const finalNumber = generateRandomFace();
+    const stopAfter = generateRollDuration();
+
+    cpDice.push({
+      id: nextId++,
+      isExploding: true,
+      isCpDie: true,
+      canExplodeSucceed: true,
+      canExplodeFail: false,
+      finalNumber,
+      stopAfter,
+    });
+
+    // Chain-explode on 6
+    if (finalNumber === EXPLODE_SUCCESS_VALUE) {
+      while (true) {
+        const explodingFinalNumber = generateRandomFace();
+        const explodingStopAfter = generateRollDuration();
+
+        cpDice.push({
+          id: nextId++,
+          isExploding: true,
+          isCpDie: true,
+          canExplodeSucceed: true,
+          canExplodeFail: false,
+          finalNumber: explodingFinalNumber,
+          stopAfter: explodingStopAfter,
+        });
+
+        if (explodingFinalNumber !== EXPLODE_SUCCESS_VALUE) {
+          break;
+        }
+      }
+    }
+  }
+
+  return cpDice;
+}
+

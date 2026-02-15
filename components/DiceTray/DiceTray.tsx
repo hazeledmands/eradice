@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Die from '../Die/Die';
 import { calculateRollResult, generateCopyText } from '../../dice/calculations';
 import { copyToClipboard } from '../../utils/clipboard';
@@ -8,6 +8,8 @@ import styles from './DiceTray.module.css';
 interface DiceTrayProps {
   roll: Roll | null;
   onReroll?: (roll: Roll) => void;
+  onSpendCp?: (rollId: number, count: number) => void;
+  canSpendCp?: boolean;
 }
 
 /**
@@ -16,12 +18,32 @@ interface DiceTrayProps {
  * - Starts first diceCount dice rolling
  * - Then animates exploding dice one by one
  */
-export default function DiceTray({ roll, onReroll }: DiceTrayProps) {
+export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: DiceTrayProps) {
   const [diceCompleteStates, setDiceCompleteStates] = useState<boolean[]>([]);
+  const [showCpPicker, setShowCpPicker] = useState(false);
+  const prevDiceCountRef = useRef(0);
 
   useEffect(() => {
       if (!roll?.dice?.length) {
         setDiceCompleteStates([]);
+        prevDiceCountRef.current = 0;
+        return;
+      }
+
+      const currentDiceCount = roll.dice.length;
+      const prevDiceCount = prevDiceCountRef.current;
+      prevDiceCountRef.current = currentDiceCount;
+
+      // CP dice appended: keep existing states as complete, add false for new dice
+      if (prevDiceCount > 0 && currentDiceCount > prevDiceCount) {
+        setDiceCompleteStates((prev) => {
+          const extended = new Array<boolean>(currentDiceCount).fill(false);
+          for (let i = 0; i < prev.length; i++) {
+            extended[i] = true;
+          }
+          return extended;
+        });
+        setShowCpPicker(false);
         return;
       }
 
@@ -84,20 +106,20 @@ export default function DiceTray({ roll, onReroll }: DiceTrayProps) {
     if (i >= roll.dice.length) {
       return;
     }
-    
+
     // if we're still rolling the first diceCount dice, wait til they finish
     if (i < roll.diceCount) {
       return;
     }
 
-    // set a timeout for the next exploding die
+    // set a timeout for the next exploding/CP die
     const timeoutRef = setTimeout(() => handleDieStopped(i), roll.dice[i].stopAfter);
     return () => clearTimeout(timeoutRef);
   }, [diceCompleteStates, roll, handleDieStopped]);
 
 
   const isComplete = useMemo(() => {
-    return diceCompleteStates.every((state) => state);
+    return diceCompleteStates.length > 0 && diceCompleteStates.every((state) => state);
   }, [diceCompleteStates]);
 
   // Use finalNumber for calculations (available immediately, not waiting for animation)
@@ -131,6 +153,11 @@ export default function DiceTray({ roll, onReroll }: DiceTrayProps) {
     }
   };
 
+  const handleCpSpend = (count: number) => {
+    if (!roll || !onSpendCp) return;
+    onSpendCp(roll.id, count);
+  };
+
   return (
     <div className={styles.DiceTray}>
       <div className={styles.controls}>
@@ -142,6 +169,7 @@ export default function DiceTray({ roll, onReroll }: DiceTrayProps) {
               finalNumber={die.finalNumber}
               isExploding={die.isExploding}
               isCancelled={isComplete && die.isCancelled}
+              isCpDie={die.isCpDie}
             />
           );
         })}
@@ -165,6 +193,38 @@ export default function DiceTray({ roll, onReroll }: DiceTrayProps) {
               >
                 Reroll
               </button>
+            )}
+            {canSpendCp && onSpendCp && roll && (
+              showCpPicker ? (
+                <div className={styles.cpPicker}>
+                  <button
+                    className={styles.cpPickerButton}
+                    onClick={() => handleCpSpend(1)}
+                  >
+                    1 CP
+                  </button>
+                  <button
+                    className={styles.cpPickerButton}
+                    onClick={() => handleCpSpend(2)}
+                  >
+                    2 CP
+                  </button>
+                  <button
+                    className={styles.cpCancelButton}
+                    onClick={() => setShowCpPicker(false)}
+                  >
+                    &times;
+                  </button>
+                </div>
+              ) : (
+                <button
+                  className={styles.cpButton}
+                  onClick={() => setShowCpPicker(true)}
+                  title="Spend Character Points"
+                >
+                  Spend CP
+                </button>
+              )
             )}
           </div>
         </React.Fragment>)}

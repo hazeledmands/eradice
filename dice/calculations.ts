@@ -42,6 +42,9 @@ export function generateCopyText(roll: Roll): string {
       if (die.isCancelled) {
         return `[${die.finalNumber}-canceled]`;
       }
+      if (die.isCpDie) {
+        return `[${die.finalNumber}-cp]`;
+      }
       return `[${die.finalNumber}]`;
     });
     copyText += ` ${diceParts.join(' ')}`;
