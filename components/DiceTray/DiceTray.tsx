@@ -179,23 +179,66 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
 
   // Use finalNumber for calculations (available immediately, not waiting for animation)
   // Can calculate result even while dice are still animating
-  const totalFaces = (roll?.dice || [])
+  const dice = roll?.dice || [];
+  const totalFaces = dice
     .filter((die) => !die.isCancelled && die.finalNumber != null)
     .reduce((acc, die) => (die.finalNumber ?? 0) + acc, 0);
 
-  const mathText: string[] = [];
-  // Show calculation as soon as we have finalNumbers (can show while animating)
-  const hasAllFinalNumbers =
-    (roll?.dice || []).length > 0 && (roll?.dice || []).every((die) => die.finalNumber != null);
-  const hasCancelledDice = (roll?.dice || []).some((die) => die.isCancelled);
-  if (hasAllFinalNumbers && ((roll?.dice || []).length > 1 || hasCancelledDice)) mathText.push(`= ${totalFaces}`);
-  if ((roll?.modifier || 0) > 0) mathText.push(`+ ${roll?.modifier || 0}`);
-  if (hasAllFinalNumbers && (roll?.modifier || 0) > 0)
-    mathText.push(`= ${(roll?.modifier || 0) + totalFaces}`);
+  const hasAllFinalNumbers = dice.length > 0 && dice.every((die) => die.finalNumber != null);
+  const hasCancelledDice = dice.some((die) => die.isCancelled);
+  const hasCpDice = dice.some((die) => die.isCpDie);
 
   // Detect critical success (explosion chain) and critical failure (cancellation)
-  const hasCritSuccess = (roll?.dice || []).some((die) => die.chainDepth != null && die.chainDepth >= 1);
-  const hasCritFail = (roll?.dice || []).some((die) => die.canExplodeFail && die.finalNumber === 1);
+  const hasCritSuccess = dice.some((die) => die.chainDepth != null && die.chainDepth >= 1);
+  const hasCritFail = dice.some((die) => die.canExplodeFail && die.finalNumber === 1);
+
+  // Show detailed math breakdown for crits and CP rolls
+  const showDetailedMath = hasAllFinalNumbers && (hasCritSuccess || hasCritFail || hasCpDice);
+  const modifier = roll?.modifier || 0;
+
+  const mathContent = useMemo(() => {
+    if (!hasAllFinalNumbers) return null;
+
+    if (showDetailedMath) {
+      const parts: string[] = [];
+      const nonCpDice = dice.filter((d) => !d.isCpDie);
+      const cpDice = dice.filter((d) => d.isCpDie);
+      const cpSum = cpDice.reduce((acc, d) => (d.finalNumber ?? 0) + acc, 0);
+
+      if (hasCritFail) {
+        // Raw sum of all non-CP dice, minus what was cancelled
+        const rawSum = nonCpDice.reduce((acc, d) => (d.finalNumber ?? 0) + acc, 0);
+        const cancelledSum = dice
+          .filter((d) => d.isCancelled)
+          .reduce((acc, d) => (d.finalNumber ?? 0) + acc, 0);
+        parts.push(`${rawSum} \u2212 ${cancelledSum}`);
+      } else {
+        // Crit success or CP: base dice + chain dice
+        const baseDice = nonCpDice.filter((d) => !d.isExploding);
+        const chainDice = nonCpDice.filter((d) => d.isExploding);
+        const baseSum = baseDice.reduce((acc, d) => (d.finalNumber ?? 0) + acc, 0);
+        const chainSum = chainDice.reduce((acc, d) => (d.finalNumber ?? 0) + acc, 0);
+
+        if (chainSum > 0) {
+          parts.push(`${baseSum} + ${chainSum}`);
+        } else {
+          parts.push(`${baseSum}`);
+        }
+      }
+
+      if (cpSum > 0) parts.push(`+ ${cpSum}`);
+      if (modifier > 0) parts.push(`+ ${modifier}`);
+      parts.push(`= ${totalFaces + modifier}`);
+      return parts.join(' ');
+    }
+
+    // Simple math (no crits/CP)
+    const text: string[] = [];
+    if (dice.length > 1 || hasCancelledDice) text.push(`= ${totalFaces}`);
+    if (modifier > 0) text.push(`+ ${modifier}`);
+    if (modifier > 0) text.push(`= ${modifier + totalFaces}`);
+    return text.length > 0 ? text.join(' ') : null;
+  }, [hasAllFinalNumbers, showDetailedMath, dice, modifier, totalFaces, hasCancelledDice, hasCritFail]);
 
   // Calculate result for button display
   const result = roll ? calculateRollResult(roll) : null;
@@ -260,7 +303,7 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
       )}
       <div className={styles.bottomRow}>
         {isComplete && (<React.Fragment>
-          <div className={styles.Math}>{mathText.join(' ')}</div>
+          {mathContent && <div className={styles.Math}>{mathContent}</div>}
           <div className={styles.actionButtons}>
             <button
               className={styles.copyButton}
