@@ -38,10 +38,13 @@ export function createRoll(
       finalNumber,
       stopAfter,
       isCancelled,
+      // Mark the original exploding die with chainDepth 0
+      ...(die.canExplodeSucceed ? { chainDepth: 0 } : {}),
     });
 
     // Check for explosion success (roll 6 on exploding die)
     if (die.canExplodeSucceed && finalNumber === EXPLODE_SUCCESS_VALUE && !isCancelled) {
+      let depth = 1;
       while (true) {
         const explodingFinalNumber = generateRandomFace();
         const explodingStopAfter = generateRollDuration();
@@ -53,12 +56,14 @@ export function createRoll(
             canExplodeFail: false,
             finalNumber: explodingFinalNumber,
             stopAfter: explodingStopAfter,
+            chainDepth: depth,
           });
 
         // If this exploding die rolled 6, create another one
         if (explodingFinalNumber !== EXPLODE_SUCCESS_VALUE) {
           break;
         }
+        depth++;
       }
     }
   }

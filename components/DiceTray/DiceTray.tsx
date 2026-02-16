@@ -23,6 +23,27 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
   const [showCpPicker, setShowCpPicker] = useState(false);
   const prevDiceCountRef = useRef(0);
 
+  // Tray-level explosion effects
+  const [trayBursting, setTrayBursting] = useState(false);
+  const [glitchActive, setGlitchActive] = useState(false);
+  const [cancellationRevealed, setCancellationRevealed] = useState(false);
+  const [activeChainLength, setActiveChainLength] = useState(0);
+
+  // Compute shouldAnimate as a memo so it can be used in multiple places
+  const shouldAnimate = useMemo(() => {
+    if (!roll?.dice?.length) return false;
+    if ('shouldAnimate' in roll) {
+      return (roll as RoomRoll).shouldAnimate;
+    }
+    if (roll?.date) {
+      const rollDate = new Date(roll.date);
+      const now = new Date();
+      const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
+      return rollDate > oneMinuteAgo;
+    }
+    return true;
+  }, [roll]);
+
   useEffect(() => {
       if (!roll?.dice?.length) {
         setDiceCompleteStates([]);
@@ -47,16 +68,11 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
         return;
       }
 
-      // For room rolls, use explicit flag instead of age check
-      let shouldAnimate = true;
-      if ('shouldAnimate' in roll) {
-        shouldAnimate = (roll as RoomRoll).shouldAnimate;
-      } else if (roll?.date) {
-        const rollDate = new Date(roll.date);
-        const now = new Date();
-        const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
-        shouldAnimate = rollDate > oneMinuteAgo;
-      }
+      // Reset tray effects on new roll
+      setTrayBursting(false);
+      setGlitchActive(false);
+      setCancellationRevealed(false);
+      setActiveChainLength(0);
 
       // If roll is older than a minute, skip animation and show all dice as complete
       if (!shouldAnimate) {
@@ -117,6 +133,45 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
     return () => clearTimeout(timeoutRef);
   }, [diceCompleteStates, roll, handleDieStopped]);
 
+  // Chain tracking: count completed exploding dice that rolled 6
+  useEffect(() => {
+    if (!roll || !shouldAnimate) return;
+
+    let chainLen = 0;
+    for (let i = 0; i < roll.dice.length; i++) {
+      const die = roll.dice[i];
+      if (die.isCpDie) continue;
+      if (die.chainDepth != null && diceCompleteStates[i] && die.finalNumber === 6) {
+        chainLen++;
+      }
+    }
+    setActiveChainLength(chainLen);
+
+    if (chainLen >= 2 && !trayBursting) {
+      setTrayBursting(true);
+      const duration = 500 + (chainLen - 2) * 80;
+      const timer = setTimeout(() => setTrayBursting(false), duration);
+      return () => clearTimeout(timer);
+    }
+  }, [diceCompleteStates, roll, shouldAnimate]);
+
+  // Cancellation timing: reveal cancelled dice early when exploding die rolls 1
+  useEffect(() => {
+    if (!roll || !shouldAnimate) return;
+
+    for (let i = 0; i < roll.dice.length; i++) {
+      const die = roll.dice[i];
+      if (die.canExplodeFail && diceCompleteStates[i] && die.finalNumber === 1) {
+        if (!cancellationRevealed) {
+          setCancellationRevealed(true);
+          setGlitchActive(true);
+          const timer = setTimeout(() => setGlitchActive(false), 2000);
+          return () => clearTimeout(timer);
+        }
+      }
+    }
+  }, [diceCompleteStates, roll, shouldAnimate, cancellationRevealed]);
+
 
   const isComplete = useMemo(() => {
     return diceCompleteStates.length > 0 && diceCompleteStates.every((state) => state);
@@ -158,18 +213,36 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
     onSpendCp(roll.id, count);
   };
 
+  // Build tray class name
+  let trayClassName = styles.DiceTray;
+  if (trayBursting) trayClassName += ` ${styles.trayBursting}`;
+  if (glitchActive) trayClassName += ` ${styles.trayGlitch}`;
+
+  // Tray inline style for --chain-length
+  const trayStyle: React.CSSProperties = {};
+  if (activeChainLength >= 2) {
+    (trayStyle as any)['--chain-length'] = activeChainLength;
+  }
+
   return (
-    <div className={styles.DiceTray}>
+    <div className={trayClassName} style={trayStyle}>
       <div className={styles.controls}>
         {(roll?.dice || []).map((die, dieIndex) => {
+          // Hide explosion/CP dice until the previous die has stopped,
+          // so they don't spoil the surprise of the preceding die's result
+          if (shouldAnimate && dieIndex >= (roll?.diceCount ?? 0) && !diceCompleteStates[dieIndex - 1]) {
+            return null;
+          }
           return (
             <Die
               key={die.id}
               state={diceCompleteStates[dieIndex] ? 'stopped' : 'rolling'}
               finalNumber={die.finalNumber}
               isExploding={die.isExploding}
-              isCancelled={isComplete && die.isCancelled}
+              isCancelled={die.isCancelled && (cancellationRevealed || isComplete || !shouldAnimate)}
               isCpDie={die.isCpDie}
+              chainDepth={die.chainDepth}
+              skipAnimation={!shouldAnimate}
             />
           );
         })}

@@ -12,6 +12,8 @@ interface DieProps {
   isExploding?: boolean;
   isCancelled?: boolean;
   isCpDie?: boolean;
+  chainDepth?: number;
+  skipAnimation?: boolean;
 }
 
 /**
@@ -24,12 +26,24 @@ export default function Die({
   isExploding,
   isCancelled,
   isCpDie,
+  chainDepth,
+  skipAnimation,
 }: DieProps) {
   // Display number - random during rolling, finalNumber when stopped
   const [displayNumber, setDisplayNumber] = useState(generateRandomFace());
   const lastUpdateTsRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
   const displayNumberRef = useRef(displayNumber);
+
+  // Explosion visual states
+  const [isBursting, setIsBursting] = useState(false);
+  const [isGlitching, setIsGlitching] = useState(false);
+  const [isSettled, setIsSettled] = useState(false);
+  const [isSettledQuiet, setIsSettledQuiet] = useState(false);
+  const [isCancelledSurging, setIsCancelledSurging] = useState(false);
+
+  const prevStateRef = useRef(state);
+  const prevCancelledRef = useRef(isCancelled);
 
   // Update display number ref
   useEffect(() => {
@@ -42,6 +56,56 @@ export default function Die({
       setDisplayNumber(finalNumber);
     }
   }, [state, finalNumber]);
+
+  // Detect rolling → stopped transition for explosion effects
+  useEffect(() => {
+    const prevState = prevStateRef.current;
+    prevStateRef.current = state;
+
+    if (isCpDie) return;
+
+    if (prevState === 'rolling' && state === 'stopped' && !skipAnimation && isExploding) {
+      if (finalNumber === 6) {
+        setIsBursting(true);
+        const timer = setTimeout(() => {
+          setIsBursting(false);
+          setIsSettled(true);
+        }, 500);
+        return () => clearTimeout(timer);
+      } else if (finalNumber === 1) {
+        setIsGlitching(true);
+        const timer = setTimeout(() => {
+          setIsGlitching(false);
+        }, 2500);
+        return () => clearTimeout(timer);
+      } else {
+        setIsSettledQuiet(true);
+      }
+    }
+
+    // Skip animation path — go directly to settled state
+    if (skipAnimation && state === 'stopped' && isExploding) {
+      if (finalNumber === 6) {
+        setIsSettled(true);
+      } else {
+        setIsSettledQuiet(true);
+      }
+    }
+  }, [state, finalNumber, isExploding, isCpDie, skipAnimation]);
+
+  // Detect isCancelled transition for surge animation
+  useEffect(() => {
+    const prevCancelled = prevCancelledRef.current;
+    prevCancelledRef.current = isCancelled;
+
+    if (!prevCancelled && isCancelled && !skipAnimation) {
+      setIsCancelledSurging(true);
+      const timer = setTimeout(() => {
+        setIsCancelledSurging(false);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [isCancelled, skipAnimation]);
 
   // Animation effect - only runs when state is "rolling"
   useEffect(() => {
@@ -110,11 +174,34 @@ export default function Die({
     };
   }, [state, finalNumber]);
 
+  // Build class name
   let className = styles.DieView;
-  if (isCpDie) className += ` ${styles.cpDie}`;
-  else if (isExploding) className += ` ${styles.exploding}`;
-  if (isCancelled) className += ` ${styles.cancelled}`;
+  if (isCpDie) {
+    className += ` ${styles.cpDie}`;
+  } else if (isExploding) {
+    if (isBursting) {
+      className += ` ${styles.exploding} ${styles.bursting}`;
+    } else if (isGlitching) {
+      className += ` ${styles.glitching}`;
+    } else if (isSettled) {
+      className += ` ${styles.settled}`;
+    } else if (isSettledQuiet) {
+      className += ` ${styles.settledQuiet}`;
+    } else {
+      className += ` ${styles.exploding}`;
+    }
+  }
+  if (isCancelledSurging) {
+    className += ` ${styles.cancelledSurging}`;
+  } else if (isCancelled) {
+    className += ` ${styles.cancelled}`;
+  }
 
-  return <div className={className}>{displayNumber}</div>;
+  // Pass --chain-depth as CSS custom property
+  const dieStyle: React.CSSProperties = {};
+  if (chainDepth != null && chainDepth > 0) {
+    (dieStyle as any)['--chain-depth'] = chainDepth;
+  }
+
+  return <div className={className} style={dieStyle}>{displayNumber}</div>;
 }
-

@@ -8,6 +8,7 @@ export interface Die {
   canExplodeSucceed?: boolean;
   canExplodeFail?: boolean;
   isCpDie?: boolean;
+  chainDepth?: number;
   finalNumber?: number | null;
   stopAfter?: number;
 }

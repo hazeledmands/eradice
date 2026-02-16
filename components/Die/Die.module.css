@@ -1,3 +1,333 @@
+/* Keyframes */
+
+@keyframes explodeBurst {
+  0% {
+    border-color: rgba(200, 80, 255, 0.6);
+    box-shadow:
+      0 0 12px rgba(200, 80, 255, 0.3),
+      inset 0 0 8px rgba(200, 80, 255, 0.1),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+    color: #cc66ff;
+    filter: brightness(1);
+    transform: scale(1);
+  }
+  10% {
+    color: #ffffff;
+    filter: brightness(1.6);
+    transform: scale(1.15);
+    border-color: rgba(0, 255, 255, 0.9);
+    box-shadow:
+      0 0 30px rgba(0, 255, 255, 0.6),
+      0 0 60px rgba(0, 255, 255, 0.3),
+      inset 0 0 12px rgba(0, 255, 255, 0.2),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  35% {
+    color: #d580ff;
+    filter: brightness(1.1);
+    transform: scale(1.08);
+    border-color: rgba(160, 80, 255, 0.8);
+    box-shadow:
+      0 0 24px rgba(160, 80, 255, 0.5),
+      0 0 48px rgba(160, 80, 255, 0.2),
+      inset 0 0 10px rgba(160, 80, 255, 0.15),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  65% {
+    color: #e060c0;
+    filter: brightness(1.05);
+    transform: scale(1.03);
+    border-color: rgba(220, 60, 200, 0.7);
+    box-shadow:
+      0 0 18px rgba(220, 60, 200, 0.4),
+      0 0 36px rgba(220, 60, 200, 0.15),
+      inset 0 0 8px rgba(220, 60, 200, 0.1),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  100% {
+    color: rgba(180, 100, 255, 0.9);
+    filter: brightness(1);
+    transform: scale(1);
+    border-color: rgba(180, 100, 255, 0.4);
+    box-shadow:
+      0 0 10px rgba(180, 100, 255, 0.25),
+      inset 0 0 6px rgba(180, 100, 255, 0.08),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+}
+
+@keyframes shockwaveRing {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+    border-color: rgba(0, 255, 255, 0.8);
+  }
+  50% {
+    border-color: rgba(160, 80, 255, 0.6);
+  }
+  100% {
+    transform: scale(calc(1.8 + var(--chain-depth, 1) * 0.15));
+    opacity: 0;
+    border-color: rgba(220, 60, 200, 0.4);
+  }
+}
+
+@keyframes spectralShimmer {
+  0%, 100% {
+    border-color: rgba(180, 100, 255, 0.35);
+    box-shadow:
+      0 0 8px rgba(180, 100, 255, 0.2),
+      inset 0 0 6px rgba(180, 100, 255, 0.06),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  33% {
+    border-color: rgba(100, 80, 255, 0.35);
+    box-shadow:
+      0 0 8px rgba(100, 80, 255, 0.2),
+      inset 0 0 6px rgba(100, 80, 255, 0.06),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  66% {
+    border-color: rgba(220, 60, 200, 0.35);
+    box-shadow:
+      0 0 8px rgba(220, 60, 200, 0.2),
+      inset 0 0 6px rgba(220, 60, 200, 0.06),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+}
+
+@keyframes glitchBreak {
+  /* Act 1: THE SHOCK — searing red flash, unmistakable */
+  0% {
+    filter: brightness(1) hue-rotate(0deg) saturate(1);
+    border-color: rgba(200, 80, 255, 0.6);
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    color: #cc66ff;
+    text-shadow: 0 0 10px rgba(200, 80, 255, 0.7);
+    box-shadow:
+      0 0 12px rgba(200, 80, 255, 0.3),
+      inset 0 0 8px rgba(200, 80, 255, 0.1),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  4% {
+    filter: brightness(2.5) hue-rotate(-50deg) saturate(3);
+    border-color: rgba(255, 30, 30, 1);
+    transform: scale(1.18) rotate(0.8deg);
+    opacity: 1;
+    color: #ffffff;
+    text-shadow: 0 0 20px rgba(255, 30, 30, 1), 0 0 40px rgba(255, 30, 30, 0.5);
+    box-shadow:
+      0 0 50px rgba(255, 30, 30, 0.8),
+      0 0 100px rgba(255, 30, 30, 0.3),
+      inset 0 0 20px rgba(255, 30, 30, 0.3);
+  }
+  10% {
+    filter: brightness(2) hue-rotate(-45deg) saturate(2.5);
+    border-color: rgba(255, 50, 50, 0.9);
+    transform: scale(1.12) rotate(-0.5deg);
+    opacity: 1;
+    color: #ffdddd;
+    text-shadow: 0 0 15px rgba(255, 50, 50, 0.8);
+    box-shadow:
+      0 0 35px rgba(255, 50, 50, 0.6),
+      inset 0 0 15px rgba(255, 50, 50, 0.2);
+  }
+  /* Dip after shock — stays bright enough for scanline visibility */
+  14% {
+    filter: brightness(0.7) hue-rotate(0deg) saturate(0.8);
+    border-color: rgba(150, 40, 40, 0.6);
+    transform: scale(0.97) rotate(0deg);
+    opacity: 0.95;
+    color: #aa4444;
+    text-shadow: none;
+    box-shadow:
+      0 0 8px rgba(150, 40, 40, 0.3),
+      inset 0 0 6px rgba(0, 0, 0, 0.3);
+  }
+  /* Act 2: CORRUPTION — brightness stays >= 0.65 so scanline is visible */
+  18% {
+    filter: brightness(1.8) hue-rotate(-40deg) saturate(2.5);
+    border-color: rgba(255, 60, 60, 0.85);
+    transform: scale(1.08) rotate(1.2deg);
+    opacity: 1;
+    color: #ff8888;
+    text-shadow: 0 0 12px rgba(255, 60, 60, 0.7);
+    box-shadow: 0 0 25px rgba(255, 60, 60, 0.5);
+  }
+  22% {
+    filter: brightness(0.7) hue-rotate(15deg) saturate(0.8);
+    border-color: rgba(140, 50, 80, 0.5);
+    transform: scale(0.97) rotate(-0.8deg);
+    opacity: 0.95;
+    color: #aa5566;
+    text-shadow: none;
+    box-shadow: 0 0 6px rgba(140, 50, 80, 0.25);
+  }
+  26% {
+    filter: brightness(1.6) hue-rotate(-35deg) saturate(2);
+    border-color: rgba(255, 68, 68, 0.75);
+    transform: scale(1.06) rotate(0.6deg);
+    opacity: 1;
+    color: #ff7777;
+    text-shadow: 0 0 10px rgba(255, 68, 68, 0.6);
+    box-shadow: 0 0 20px rgba(255, 68, 68, 0.4);
+  }
+  30% {
+    filter: brightness(0.65) hue-rotate(10deg) saturate(0.7);
+    border-color: rgba(130, 50, 70, 0.45);
+    transform: scale(0.97) rotate(-0.4deg);
+    opacity: 0.9;
+    color: #996666;
+    text-shadow: none;
+    box-shadow: 0 0 5px rgba(130, 50, 70, 0.2);
+  }
+  35% {
+    filter: brightness(1.4) hue-rotate(-30deg) saturate(1.8);
+    border-color: rgba(240, 70, 70, 0.65);
+    transform: scale(1.03) rotate(0.9deg);
+    opacity: 1;
+    color: #ee6666;
+    text-shadow: 0 0 8px rgba(240, 70, 70, 0.5);
+    box-shadow: 0 0 16px rgba(240, 70, 70, 0.35);
+  }
+  39% {
+    filter: brightness(0.7) hue-rotate(8deg) saturate(0.7);
+    border-color: rgba(140, 50, 80, 0.45);
+    transform: scale(0.97) rotate(-0.3deg);
+    opacity: 0.9;
+    color: #aa6677;
+    text-shadow: none;
+    box-shadow: 0 0 5px rgba(140, 50, 80, 0.18);
+  }
+  44% {
+    filter: brightness(1.2) hue-rotate(-25deg) saturate(1.5);
+    border-color: rgba(220, 70, 70, 0.55);
+    transform: scale(1.01) rotate(0.4deg);
+    opacity: 0.95;
+    color: #dd6666;
+    text-shadow: 0 0 6px rgba(220, 70, 70, 0.4);
+    box-shadow: 0 0 12px rgba(220, 70, 70, 0.25);
+  }
+  48% {
+    filter: brightness(0.7) hue-rotate(5deg) saturate(0.7);
+    border-color: rgba(140, 55, 75, 0.45);
+    transform: scale(0.98) rotate(-0.2deg);
+    opacity: 0.9;
+    color: #996666;
+    text-shadow: none;
+    box-shadow: 0 0 5px rgba(140, 55, 75, 0.15);
+  }
+  52% {
+    filter: brightness(1.0) hue-rotate(-15deg) saturate(1.2);
+    border-color: rgba(200, 60, 70, 0.5);
+    transform: scale(1.0) rotate(0.2deg);
+    opacity: 0.95;
+    color: #cc6666;
+    text-shadow: 0 0 4px rgba(200, 60, 70, 0.3);
+    box-shadow: 0 0 8px rgba(200, 60, 70, 0.2);
+  }
+  /* Last flicker — still colored */
+  56% {
+    filter: brightness(0.8) hue-rotate(3deg) saturate(0.8);
+    border-color: rgba(160, 55, 75, 0.45);
+    transform: scale(0.98) rotate(0deg);
+    opacity: 0.9;
+    color: #aa6666;
+    text-shadow: none;
+    box-shadow: 0 0 5px rgba(160, 55, 75, 0.15);
+  }
+  /* Act 3: DEATH SPIRAL — scanlines are done, now the color drains */
+  62% {
+    filter: brightness(0.7) hue-rotate(-5deg) saturate(0.5);
+    border-color: rgba(150, 70, 80, 0.38);
+    transform: scale(0.97) rotate(0deg);
+    opacity: 0.75;
+    color: #887766;
+    text-shadow: none;
+    box-shadow: 0 0 5px rgba(150, 70, 80, 0.12);
+  }
+  72% {
+    filter: brightness(0.5) hue-rotate(0deg) saturate(0.3);
+    border-color: rgba(120, 90, 95, 0.35);
+    transform: scale(0.96) rotate(0deg);
+    opacity: 0.55;
+    color: #777;
+    text-shadow: none;
+    box-shadow: 0 0 4px rgba(120, 90, 95, 0.1);
+  }
+  85% {
+    filter: brightness(0.4) hue-rotate(0deg) saturate(0.15);
+    border-color: rgba(110, 100, 100, 0.35);
+    transform: scale(0.955) rotate(0deg);
+    opacity: 0.38;
+    color: #666;
+    text-shadow: none;
+    box-shadow:
+      0 0 4px rgba(100, 100, 100, 0.1),
+      inset 0 0 4px rgba(0, 0, 0, 0.3);
+  }
+  100% {
+    opacity: 0.3;
+    filter: grayscale(80%) brightness(0.4);
+    transform: scale(0.95);
+    border-color: rgba(100, 100, 100, 0.4);
+    color: #555;
+    text-shadow: none;
+    box-shadow:
+      0 0 4px rgba(100, 100, 100, 0.1),
+      inset 0 0 4px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@keyframes glitchScanline {
+  0%, 12% { top: -10%; opacity: 0; }
+  14% { top: -10%; opacity: 1; }
+  30% { top: 110%; opacity: 0.8; }
+  32%, 40% { top: -10%; opacity: 0; }
+  42% { top: -10%; opacity: 0.6; }
+  55% { top: 110%; opacity: 0.3; }
+  56% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes cancelledSurge {
+  0% {
+    border-color: rgba(0, 255, 255, 0.5);
+    box-shadow:
+      0 0 8px rgba(0, 255, 255, 0.2),
+      inset 0 0 6px rgba(0, 255, 255, 0.08),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+    color: #00ffff;
+    opacity: 1;
+    filter: none;
+    transform: scale(1);
+  }
+  30% {
+    border-color: rgba(220, 60, 200, 0.8);
+    box-shadow:
+      0 0 18px rgba(220, 60, 200, 0.5),
+      inset 0 0 10px rgba(220, 60, 200, 0.15),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+    color: #e060c0;
+    opacity: 1;
+    filter: brightness(1.2);
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 0.3;
+    filter: grayscale(80%) brightness(0.4);
+    transform: scale(0.95);
+    border-color: rgba(100, 100, 100, 0.4);
+    box-shadow:
+      0 0 4px rgba(100, 100, 100, 0.1),
+      inset 0 0 4px rgba(0, 0, 0, 0.3);
+    color: #555;
+  }
+}
+
+/* Base die */
+
 .DieView {
   border: 1px solid rgba(0, 255, 255, 0.5);
   border-radius: 8px;
@@ -30,6 +360,8 @@
     0 2px 10px rgba(0, 0, 0, 0.5);
 }
 
+/* Exploding die (rolling state, current purple) */
+
 .DieView.exploding {
   border-color: rgba(200, 80, 255, 0.6);
   background: linear-gradient(135deg, #180a20 0%, #2a1038 50%, #180a20 100%);
@@ -40,6 +372,84 @@
     inset 0 0 8px rgba(200, 80, 255, 0.1),
     0 2px 8px rgba(0, 0, 0, 0.4);
 }
+
+/* Bursting — explosive bloom on rolling 6 */
+
+.DieView.bursting {
+  animation: explodeBurst 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, box-shadow, filter;
+  background: linear-gradient(135deg, #180a20 0%, #2a1038 50%, #180a20 100%);
+  text-shadow: 0 0 10px rgba(200, 80, 255, 0.7);
+}
+
+.DieView.bursting::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 10px;
+  border: 2px solid rgba(0, 255, 255, 0.8);
+  animation: shockwaveRing 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: none;
+}
+
+/* Settled — post-explosion residual for dice that rolled 6 */
+
+.DieView.settled {
+  background: linear-gradient(135deg, #140a1e 0%, #221030 50%, #140a1e 100%);
+  color: rgba(180, 100, 255, 0.9);
+  text-shadow: 0 0 8px rgba(180, 100, 255, 0.5);
+  border-color: rgba(180, 100, 255, 0.35);
+  box-shadow:
+    0 0 8px rgba(180, 100, 255, 0.2),
+    inset 0 0 6px rgba(180, 100, 255, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+  animation: spectralShimmer 5s ease-in-out infinite;
+  will-change: border-color, box-shadow;
+}
+
+/* Settled quiet — for exploding dice that rolled 2-5 (fizzled) */
+
+.DieView.settledQuiet {
+  background: linear-gradient(135deg, #0c1520 0%, #122830 50%, #0c1520 100%);
+  color: rgba(100, 220, 240, 0.8);
+  text-shadow: 0 0 6px rgba(100, 220, 240, 0.4);
+  border-color: rgba(130, 180, 220, 0.35);
+  box-shadow:
+    0 0 6px rgba(130, 180, 220, 0.15),
+    inset 0 0 4px rgba(130, 180, 220, 0.05),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Glitching — corruption on rolling 1 */
+
+.DieView.glitching {
+  animation: glitchBreak 2500ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  background: linear-gradient(135deg, #180a20 0%, #2a1038 50%, #180a20 100%);
+  text-shadow: 0 0 10px rgba(200, 80, 255, 0.7);
+  will-change: transform, box-shadow, filter, opacity;
+  overflow: hidden;
+}
+
+.DieView.glitching::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 40, 40, 0.9), rgba(255, 200, 200, 1), rgba(255, 40, 40, 0.9), transparent);
+  box-shadow: 0 0 12px rgba(255, 40, 40, 0.6), 0 0 24px rgba(255, 40, 40, 0.3);
+  animation: glitchScanline 2500ms linear forwards;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Cancelled surge — violet flash before grey collapse on target die */
+
+.DieView.cancelledSurging {
+  animation: cancelledSurge 400ms ease-out forwards;
+}
+
+/* CP die */
 
 .DieView.cpDie {
   border-color: rgba(255, 200, 50, 0.6);
@@ -52,6 +462,8 @@
     0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
+/* Cancelled die — static grey */
+
 .DieView.cancelled {
   opacity: 0.3;
   filter: grayscale(80%) brightness(0.4);
@@ -62,5 +474,31 @@
     inset 0 0 4px rgba(0, 0, 0, 0.3);
   text-shadow: none;
   color: #555;
+  transition: opacity 0.3s ease, filter 0.3s ease, transform 0.3s ease;
+  animation: none;
 }
 
+/* Reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .DieView.settled,
+  .DieView.settledQuiet {
+    animation: none;
+    border-color: rgba(180, 100, 255, 0.35);
+  }
+  .DieView.bursting {
+    animation: none;
+  }
+  .DieView.bursting::after {
+    display: none;
+  }
+  .DieView.glitching {
+    animation: none;
+  }
+  .DieView.glitching::before {
+    display: none;
+  }
+  .DieView.cancelledSurging {
+    animation: none;
+  }
+}

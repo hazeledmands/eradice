@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import Ledger from '../Ledger/Ledger';
 import DiceTray from '../DiceTray/DiceTray';
 import type { RoomRoll } from '../../dice/types';
@@ -100,5 +100,62 @@ describe('DiceTray animation on reveal', () => {
     expect(dieElements).toHaveLength(2);
     // At least initially, not all dice should show their final stopped numbers
     // because they should be in 'rolling' state with random faces
+  });
+});
+
+describe('DiceTray explosion dice visibility', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  function makeExplosionRoll(): RoomRoll {
+    return {
+      id: 2000,
+      text: '1d',
+      diceCount: 1,
+      modifier: 0,
+      date: new Date().toISOString(),
+      dice: [
+        { id: 0, finalNumber: 6, stopAfter: 500, canExplodeSucceed: true, canExplodeFail: true, chainDepth: 0 },
+        { id: 1, finalNumber: 3, stopAfter: 400, isExploding: true, canExplodeSucceed: true, canExplodeFail: false, chainDepth: 1 },
+      ],
+      nickname: 'Test',
+      isLocal: true,
+      shouldAnimate: true,
+      visibility: 'shared',
+      isRevealed: false,
+    };
+  }
+
+  it('hides explosion dice until the preceding die finishes rolling', () => {
+    const roll = makeExplosionRoll();
+    const { container } = render(<DiceTray roll={roll} />);
+
+    // Initially only the original die should be visible
+    const dieElements = container.querySelectorAll('[class*="DieView"]');
+    expect(dieElements).toHaveLength(1);
+  });
+
+  it('shows explosion die after the preceding die stops', () => {
+    const roll = makeExplosionRoll();
+    const { container } = render(<DiceTray roll={roll} />);
+
+    // Advance past the first die's stopAfter (500ms)
+    act(() => jest.advanceTimersByTime(500));
+
+    // Now the explosion die should be visible (rolling)
+    const dieElements = container.querySelectorAll('[class*="DieView"]');
+    expect(dieElements).toHaveLength(2);
+  });
+
+  it('shows all explosion dice immediately when animation is skipped', () => {
+    const roll = makeExplosionRoll();
+    roll.shouldAnimate = false;
+    const { container } = render(<DiceTray roll={roll} />);
+
+    // Both dice visible immediately with final numbers
+    const dieElements = container.querySelectorAll('[class*="DieView"]');
+    expect(dieElements).toHaveLength(2);
+    expect(dieElements[0].textContent).toBe('6');
+    expect(dieElements[1].textContent).toBe('3');
   });
 });

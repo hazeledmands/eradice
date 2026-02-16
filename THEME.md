@@ -6,17 +6,24 @@ Design language and thematic guidelines for Eradice, a dice roller for the **Era
 
 Eight hundred years after a cataclysm shattered a galactic utopia, civilization scrapes itself back together in the ruins — jury-rigging the sublime wreckage of a golden age it can barely remember.
 
-## Core Aesthetic: Accreted Ruin
+## Core Aesthetic: Accreted Ruin, Lit by the Substrate
 
 The defining image of Era is **New Tethys** — a once-elegant spindle-shaped station now buried under centuries of ad-hoc structures, like a bicycle wheel encrusted with coral after decades on the ocean floor. The original form is still there, still beautiful, but you have to squint to see it through the layers.
 
-This is the aesthetic principle for the app: **something refined buried under something lived-in**. Not sleek and pristine. Not grimdark and hopeless. Somewhere in between — a terminal that's been repaired too many times, a display that flickers but still works, technology that's held together by stubbornness and solder.
+Saturating every surface is **the Substrate** — galaxy-spanning nanotechnology so pervasive it's no longer technology but nature. Trillions of nanites hum in the air, the walls, the dust. What the setting calls "magic" is really just making the Substrate do something it wasn't supposed to do. In the game's mechanics, a caster's dice represent the physical mass of their nanite swarm. The dice aren't abstract. They're matter. (For the full lore on the schools of magic, see [Nanite Magic](docs/lore/nanite-magic.md).)
 
-### What This Means in Practice
+This is the aesthetic principle for the app: **something refined buried under something lived-in, glowing faintly with ancient infrastructure**. Not sleek and pristine. Not grimdark and hopeless. A terminal that's been repaired too many times, a display that flickers but still works, technology held together by stubbornness and solder — and underneath it all, the Substrate hums.
 
-- **Layered, not clean.** Backgrounds should feel like they have depth and sediment — subtle noise, overlapping gradients, faint grid lines like old schematics bleeding through. The current scanline overlay and background grid are good examples of this.
-- **Glow through grime.** UI elements should feel like they're emitting light through a slightly dirty surface. Neon glows are right, but they should feel like they're fighting against entropy — not the crisp neon of a brand-new sign, but the warm bleed of one that's been running for centuries.
+### Design Directives
+
+- **Layered, not clean.** Backgrounds should feel like they have depth and sediment — subtle noise, overlapping gradients, faint grid lines like old schematics bleeding through. The scanline overlay and background grid are good examples.
+- **Glow through grime.** UI elements should feel like they're emitting light through a slightly dirty surface. Not the crisp neon of a brand-new sign, but the warm bleed of one that's been running for centuries.
 - **Functional, not decorative.** The interface should feel like a tool someone on New Tethys actually uses. Labels are terse. Controls are utilitarian. The beauty comes from the materials, not ornamentation.
+- **The cyan glow is the Substrate.** The primary accent (`#00ffff`) is nanite dust resonating on every surface. When UI elements glow cyan, they're resonating with the infrastructure of the setting.
+- **The noise and grain are literal.** Fine-grained texture in backgrounds is nanite substrate dust in the air. Everywhere. Always.
+- **Exploding dice are the Substrate going haywire.** Magenta/violet on exploding dice represents the normal rules bending — the Annihilation nebula's iridescence bleeding through. A 6 means the swarm did something it shouldn't have been able to do.
+- **Cancelled dice are nanites going dark.** A 1 on the exploding die means the swarm destabilized. Nanites scattered. A system losing power — a small death in the swarm.
+- **Magic should never look mystical.** If future features touch on magic (spell pools, nanite tracking, familiar stats), they should feel like engineering readouts, not spell books. Gauges, not glyphs. A mage's die pool is a mass readout, not a mana bar.
 
 ## Color Palette
 
@@ -108,7 +115,7 @@ When the app communicates with the user (labels, placeholders, empty states, err
 - **Not clean sci-fi.** No Apple-store minimalism, no smooth white surfaces, no gentle sans-serifs.
 - **Not grimdark.** Not rusted metal and blood. Not hopeless. The station is rough but people live here and care about it.
 - **Not retro-futurism.** Not 1970s NASA or Alien-movie green phosphor terminals. The technology is far more advanced than that — it just happens to be old and patched.
-- **Not fantasy.** Even though the setting has magic (nanite-based technomancy), the app itself is a piece of station technology. It should feel like tech, not parchment and runes.
+- **Not fantasy.** The setting's magic is nanite engineering by another name — backdoors, symbiotic AIs, befriended swarms, divine root access. The app is a piece of station technology. It should feel like tech, not parchment and runes. A mage's die pool is a mass readout, not a mana bar.
 
 ## The Emotional Register
 
