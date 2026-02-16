@@ -10,6 +10,7 @@ interface DieProps {
   state: 'rolling' | 'stopped';
   finalNumber?: number | null;
   isExploding?: boolean;
+  canExplodeFail?: boolean;
   isCancelled?: boolean;
   isCpDie?: boolean;
   chainDepth?: number;
@@ -24,6 +25,7 @@ export default function Die({
   state,
   finalNumber,
   isExploding,
+  canExplodeFail,
   isCancelled,
   isCpDie,
   chainDepth,
@@ -72,7 +74,7 @@ export default function Die({
           setIsSettled(true);
         }, 500);
         return () => clearTimeout(timer);
-      } else if (finalNumber === 1) {
+      } else if (canExplodeFail && finalNumber === 1) {
         setIsGlitching(true);
         const timer = setTimeout(() => {
           setIsGlitching(false);
@@ -91,7 +93,7 @@ export default function Die({
         setIsSettledQuiet(true);
       }
     }
-  }, [state, finalNumber, isExploding, isCpDie, skipAnimation]);
+  }, [state, finalNumber, isExploding, canExplodeFail, isCpDie, skipAnimation]);
 
   // Detect isCancelled transition for surge animation
   useEffect(() => {

@@ -239,6 +239,7 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
               state={diceCompleteStates[dieIndex] ? 'stopped' : 'rolling'}
               finalNumber={die.finalNumber}
               isExploding={die.isExploding}
+              canExplodeFail={die.canExplodeFail}
               isCancelled={die.isCancelled && (cancellationRevealed || isComplete || !shouldAnimate)}
               isCpDie={die.isCpDie}
               chainDepth={die.chainDepth}
