@@ -193,6 +193,10 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
   if (hasAllFinalNumbers && (roll?.modifier || 0) > 0)
     mathText.push(`= ${(roll?.modifier || 0) + totalFaces}`);
 
+  // Detect critical success (explosion chain) and critical failure (cancellation)
+  const hasCritSuccess = (roll?.dice || []).some((die) => die.chainDepth != null && die.chainDepth >= 1);
+  const hasCritFail = (roll?.dice || []).some((die) => die.canExplodeFail && die.finalNumber === 1);
+
   // Calculate result for button display
   const result = roll ? calculateRollResult(roll) : null;
 
@@ -248,6 +252,12 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
           );
         })}
       </div>
+      {hasCritSuccess && isComplete && (
+        <div className={styles.critSuccess}>Critical Success</div>
+      )}
+      {hasCritFail && (cancellationRevealed || (isComplete && !shouldAnimate)) && (
+        <div className={styles.critFail}>Critical Failure</div>
+      )}
       <div className={styles.bottomRow}>
         {isComplete && (<React.Fragment>
           <div className={styles.Math}>{mathText.join(' ')}</div>

@@ -146,6 +146,55 @@
   animation: trayGlitch 2000ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
 }
 
+@keyframes critSuccessReveal {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.7);
+    filter: brightness(2.5) blur(4px);
+  }
+  40% {
+    opacity: 1;
+    transform: scaleX(1.02);
+    filter: brightness(1.8) blur(0px);
+  }
+  60% {
+    transform: scaleX(1);
+    filter: brightness(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes critFailReveal {
+  0% {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  15% {
+    opacity: 1;
+    transform: translateX(4px);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  35% {
+    transform: translateX(2px);
+  }
+  45% {
+    transform: translateX(-1px);
+  }
+  55% {
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .DiceTray.trayBursting,
   .DiceTray.trayGlitch {
@@ -315,6 +364,44 @@
 .cpCancelButton:hover {
   border-color: rgba(128, 128, 128, 0.5);
   color: #aaa;
+}
+
+.criticalLabel {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-top: 0.6rem;
+}
+
+.critSuccess {
+  composes: criticalLabel;
+  background: linear-gradient(90deg, #00ffff, #cc44ff);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 0 6px rgba(0, 255, 255, 0.4)) drop-shadow(0 0 12px rgba(160, 80, 255, 0.2));
+  animation: critSuccessReveal 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.critFail {
+  composes: criticalLabel;
+  color: #ff4444;
+  text-shadow:
+    -1px 0 rgba(0, 255, 255, 0.4),
+    1px 0 rgba(255, 0, 100, 0.4),
+    0 0 8px rgba(255, 40, 40, 0.5);
+  animation: critFailReveal 400ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .critSuccess,
+  .critFail {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 @media (max-width: 768px) {
