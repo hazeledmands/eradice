@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Die from '../Die/Die';
 import { calculateRollResult, generateCopyText } from '../../dice/calculations';
 import { copyToClipboard } from '../../utils/clipboard';
-import type { Roll, RoomRoll } from '../../dice/types';
+import type { Roll } from '../../dice/types';
 import styles from './DiceTray.module.css';
 
 interface DiceTrayProps {
@@ -29,19 +29,10 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
   const [cancellationRevealed, setCancellationRevealed] = useState(false);
   const [activeChainLength, setActiveChainLength] = useState(0);
 
-  // Compute shouldAnimate as a memo so it can be used in multiple places
+  // Only animate rolls explicitly flagged (newly created or incoming from room)
   const shouldAnimate = useMemo(() => {
     if (!roll?.dice?.length) return false;
-    if ('shouldAnimate' in roll) {
-      return (roll as RoomRoll).shouldAnimate;
-    }
-    if (roll?.date) {
-      const rollDate = new Date(roll.date);
-      const now = new Date();
-      const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
-      return rollDate > oneMinuteAgo;
-    }
-    return true;
+    return roll.shouldAnimate === true;
   }, [roll]);
 
   useEffect(() => {

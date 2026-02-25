@@ -65,9 +65,12 @@ export function useDiceRollsStorage() {
   const saveRolls = useCallback(
     (rolls: Roll[]) => {
       // Only save completed rolls (all dice have final numbers)
-      const completedRolls = rolls.filter(
-        (roll) => roll.dice && roll.dice.every((die) => die.finalNumber != null)
-      );
+      // Strip shouldAnimate so loaded rolls don't re-animate on refresh
+      const completedRolls = rolls
+        .filter(
+          (roll) => roll.dice && roll.dice.every((die) => die.finalNumber != null)
+        )
+        .map(({ shouldAnimate, ...rest }) => rest);
       setStoredRolls(completedRolls);
     },
     [setStoredRolls]

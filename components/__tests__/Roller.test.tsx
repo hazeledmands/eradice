@@ -20,8 +20,8 @@ describe('Roller UI Test', () => {
       await user.clear(input);
       await user.type(input, diceNotation);
 
-      // Find and click the roll button
-      const rollButton = screen.getByRole('button', { name: /roll/i });
+      // Find and click the roll button (exact match to avoid matching Reroll buttons)
+      const rollButton = screen.getByRole('button', { name: /^roll!$/i });
       expect(rollButton).toBeInTheDocument();
       await user.click(rollButton);
 
@@ -73,7 +73,7 @@ describe('Roller UI Test', () => {
     const input = screen.getByLabelText(/what would you like to roll/i);
     await user.type(input, '3d+2');
 
-    const rollButton = screen.getByRole('button', { name: /roll/i });
+    const rollButton = screen.getByRole('button', { name: /^roll!$/i });
     await user.click(rollButton);
 
     // Wait for roll to appear

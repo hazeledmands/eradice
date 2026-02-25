@@ -129,6 +129,7 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
     if (text.length === 0 || dice.length === 0) return;
 
     const newRoll = createRoll(text, dice, modifier, diceCount);
+    newRoll.shouldAnimate = true;
 
     if (isRoomMode) {
       broadcastRoll(newRoll, nickname, rollVisibility);
@@ -144,6 +145,7 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
   const handleReroll = useCallback((originalRoll: Roll) => {
     const newDice = createDiceArray(originalRoll.diceCount);
     const newRoll = createRoll(originalRoll.text, newDice, originalRoll.modifier, originalRoll.diceCount);
+    newRoll.shouldAnimate = true;
 
     if (isRoomMode) {
       broadcastRoll(newRoll, nickname, rollVisibility);
@@ -160,7 +162,7 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
 
     const maxId = Math.max(...targetRoll.dice.map((d) => d.id));
     const cpDice = createCpDice(count, maxId + 1);
-    const updatedRoll = { ...targetRoll, dice: [...targetRoll.dice, ...cpDice] };
+    const updatedRoll = { ...targetRoll, dice: [...targetRoll.dice, ...cpDice], shouldAnimate: true };
 
     if (isRoomMode) {
       broadcastCpSpend(rollId, updatedRoll);

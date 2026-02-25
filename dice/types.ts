@@ -29,6 +29,7 @@ export interface Roll extends ParsedRollNotation {
   text: string;
   dice: Die[];
   date: string; // ISO date string of when the roll was created
+  shouldAnimate?: boolean; // transient flag; only true for rolls created this session
 }
 
 /**
