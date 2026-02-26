@@ -198,7 +198,7 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
   // Memoize the preview roll object to prevent unnecessary re-renders in DiceTray
   const previewRoll = useMemo(() => {
     if (!text || !dice.length) return null;
-    return { id: 0, text, dice, modifier, diceCount, date: new Date().toISOString() };
+    return { id: 0, text, dice, modifier, diceCount, date: new Date().toISOString(), shouldAnimate: true };
   }, [text, dice, modifier, diceCount]);
 
   // Room rolls are stored oldest-first, display newest-first
