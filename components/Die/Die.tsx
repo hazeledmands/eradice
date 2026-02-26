@@ -64,8 +64,6 @@ export default function Die({
     const prevState = prevStateRef.current;
     prevStateRef.current = state;
 
-    if (isCpDie) return;
-
     if (prevState === 'rolling' && state === 'stopped' && !skipAnimation && isExploding) {
       if (finalNumber === 6) {
         setIsBursting(true);
@@ -180,7 +178,8 @@ export default function Die({
   let className = styles.DieView;
   if (isCpDie) {
     className += ` ${styles.cpDie}`;
-  } else if (isExploding) {
+  }
+  if (isExploding) {
     if (isBursting) {
       className += ` ${styles.exploding} ${styles.bursting}`;
     } else if (isGlitching) {

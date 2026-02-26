@@ -121,10 +121,12 @@ export function createCpDice(count: number, startingId: number): Die[] {
       canExplodeFail: false,
       finalNumber,
       stopAfter,
+      chainDepth: 0,
     });
 
     // Chain-explode on 6
     if (finalNumber === EXPLODE_SUCCESS_VALUE) {
+      let depth = 1;
       while (true) {
         const explodingFinalNumber = generateRandomFace();
         const explodingStopAfter = generateRollDuration();
@@ -137,11 +139,13 @@ export function createCpDice(count: number, startingId: number): Die[] {
           canExplodeFail: false,
           finalNumber: explodingFinalNumber,
           stopAfter: explodingStopAfter,
+          chainDepth: depth,
         });
 
         if (explodingFinalNumber !== EXPLODE_SUCCESS_VALUE) {
           break;
         }
+        depth++;
       }
     }
   }

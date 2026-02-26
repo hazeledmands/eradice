@@ -29,6 +29,10 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
   const [cancellationRevealed, setCancellationRevealed] = useState(false);
   const [activeChainLength, setActiveChainLength] = useState(0);
 
+  // CP tray-level burst (separate from regular chain tracking)
+  const [cpTrayBursting, setCpTrayBursting] = useState(false);
+  const [cpActiveChainLength, setCpActiveChainLength] = useState(0);
+
   // Only animate rolls explicitly flagged (newly created or incoming from room)
   const shouldAnimate = useMemo(() => {
     if (!roll?.dice?.length) return false;
@@ -64,6 +68,8 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
       setGlitchActive(false);
       setCancellationRevealed(false);
       setActiveChainLength(0);
+      setCpTrayBursting(false);
+      setCpActiveChainLength(0);
 
       // If roll is older than a minute, skip animation and show all dice as complete
       if (!shouldAnimate) {
@@ -144,6 +150,7 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
       const timer = setTimeout(() => setTrayBursting(false), duration);
       return () => clearTimeout(timer);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [diceCompleteStates, roll, shouldAnimate]);
 
   // Cancellation timing: reveal cancelled dice early when exploding die rolls 1
@@ -163,6 +170,28 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
     }
   }, [diceCompleteStates, roll, shouldAnimate, cancellationRevealed]);
 
+  // CP chain tracking: count completed CP dice that rolled 6
+  useEffect(() => {
+    if (!roll || !shouldAnimate) return;
+
+    let cpChainLen = 0;
+    for (let i = 0; i < roll.dice.length; i++) {
+      const die = roll.dice[i];
+      if (!die.isCpDie) continue;
+      if (die.chainDepth != null && diceCompleteStates[i] && die.finalNumber === 6) {
+        cpChainLen++;
+      }
+    }
+    setCpActiveChainLength(cpChainLen);
+
+    if (cpChainLen >= 2 && !cpTrayBursting) {
+      setCpTrayBursting(true);
+      const duration = 500 + (cpChainLen - 2) * 80;
+      const timer = setTimeout(() => setCpTrayBursting(false), duration);
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diceCompleteStates, roll, shouldAnimate]);
 
   const isComplete = useMemo(() => {
     return diceCompleteStates.length > 0 && diceCompleteStates.every((state) => state);
@@ -255,11 +284,15 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
   let trayClassName = styles.DiceTray;
   if (trayBursting) trayClassName += ` ${styles.trayBursting}`;
   if (glitchActive) trayClassName += ` ${styles.trayGlitch}`;
+  if (cpTrayBursting) trayClassName += ` ${styles.cpTrayBursting}`;
 
-  // Tray inline style for --chain-length
+  // Tray inline style for --chain-length / --cp-chain-length
   const trayStyle: React.CSSProperties = {};
   if (activeChainLength >= 2) {
     (trayStyle as any)['--chain-length'] = activeChainLength;
+  }
+  if (cpActiveChainLength >= 2) {
+    (trayStyle as any)['--cp-chain-length'] = cpActiveChainLength;
   }
 
   return (

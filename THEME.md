@@ -23,6 +23,7 @@ This is the aesthetic principle for the app: **something refined buried under so
 - **The noise and grain are literal.** Fine-grained texture in backgrounds is nanite substrate dust in the air. Everywhere. Always.
 - **Exploding dice are the Substrate going haywire.** Magenta/violet on exploding dice represents the normal rules bending — the Annihilation nebula's iridescence bleeding through. A 6 means the swarm did something it shouldn't have been able to do.
 - **Cancelled dice are nanites going dark.** A 1 on the exploding die means the swarm destabilized. Nanites scattered. A system losing power — a small death in the swarm.
+- **CP dice are the character's will, not the Substrate.** Gold on CP dice is Zera's warmth, not nanite resonance. When CP dice explode, the effect should feel like personal determination surging — a warm bloom, not a digital shockwave. The Substrate is volatile and alien; willpower is steady and human.
 - **Magic should never look mystical.** If future features touch on magic (spell pools, nanite tracking, familiar stats), they should feel like engineering readouts, not spell books. Gauges, not glyphs. A mage's die pool is a mass readout, not a mana bar.
 
 ## Color Palette
