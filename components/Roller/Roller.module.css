@@ -261,10 +261,14 @@
 
 @media (max-width: 420px) {
   .inputRow {
-    flex-wrap: wrap;
+    flex-direction: column;
+  }
+
+  .terminalInput {
+    width: 100%;
   }
 
   .Roller :global(button[type="submit"]) {
-    flex: 1;
+    width: 100%;
   }
 }
