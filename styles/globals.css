@@ -16,10 +16,6 @@ body {
     linear-gradient(90deg, rgba(0, 255, 255, 0.02) 1px, transparent 1px),
     /* Grime texture -- barnacle corrosion over the viewport */
     url('/station-grime.png'),
-    /* Zera's golden rings -- faint arc */
-    radial-gradient(ellipse at 75% 75%, rgba(255, 200, 60, 0.03) 0%, transparent 35%),
-    /* Warm overhead glow -- Zera's reflected light on the hull */
-    radial-gradient(ellipse at 60% 10%, rgba(255, 180, 60, 0.025) 0%, transparent 45%),
     /* Triton -- blue giant star, upper left */
     radial-gradient(circle at 15% 25%, rgba(140, 180, 255, 0.06) 0%, transparent 40%),
     /* Zera -- blue-green gas planet, lower right */
@@ -29,15 +25,15 @@ body {
   background-size:
     50px 50px, 50px 50px,
     cover,
-    100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+    100% 100%, 100% 100%, 100% 100%;
   background-position:
     0 0, 0 0,
     center center,
-    0 0, 0 0, 0 0, 0 0, 0 0;
+    0 0, 0 0, 0 0;
   background-repeat:
     repeat, repeat,
     no-repeat,
-    no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+    no-repeat, no-repeat, no-repeat;
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
@@ -108,3 +104,4 @@ code {
   position: relative;
   z-index: 2;
 }
+

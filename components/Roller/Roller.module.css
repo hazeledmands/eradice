@@ -1,6 +1,23 @@
 .Roller {
-  background: rgba(5, 10, 20, 0.85);
-  border-radius: 12px;
+  background:
+    /* Worn patches -- coating corroded away, bare metal showing through */
+    radial-gradient(ellipse at 8% 12%, rgba(130, 145, 155, 0.18) 0%, transparent 45%),
+    radial-gradient(ellipse at 92% 6%, rgba(110, 125, 135, 0.13) 0%, transparent 30%),
+    radial-gradient(ellipse at 70% 88%, rgba(125, 140, 150, 0.15) 0%, transparent 40%),
+    radial-gradient(ellipse at 35% 60%, rgba(105, 120, 130, 0.1) 0%, transparent 28%),
+    radial-gradient(ellipse at 55% 30%, rgba(115, 130, 140, 0.08) 0%, transparent 35%),
+    /* Surface grime -- same barnacle texture as the viewport */
+    url('/station-grime.png'),
+    rgba(5, 10, 20, 0.85);
+  background-size:
+    100%, 100%, 100%, 100%, 100%,
+    200px 200px,
+    auto;
+  background-repeat:
+    no-repeat, no-repeat, no-repeat, no-repeat, no-repeat,
+    repeat,
+    repeat;
+  border-radius: 2px;
   padding: 2.5rem;
   box-shadow:
     0 0 20px rgba(0, 255, 255, 0.1),
@@ -9,6 +26,17 @@
   backdrop-filter: blur(10px);
   border: 1px solid rgba(0, 255, 255, 0.25);
   position: relative;
+}
+
+/* Corner mount brackets -- suggests the panel is bolted into the station wall */
+.Roller::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+  z-index: 1;
+  border: 36px solid transparent;
+  border-image: url('/brackets.svg') 36 / 36px;
 }
 
 .Roller :global(form) {
@@ -217,7 +245,7 @@
 @media (max-width: 768px) {
   .Roller {
     padding: 1.5rem;
-    border-radius: 16px;
+    border-radius: 2px;
   }
 }
 
