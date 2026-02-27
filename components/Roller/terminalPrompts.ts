@@ -30,6 +30,42 @@ const TERMINAL_PROMPTS: string[] = [
   'Lowdii proximity: within tolerance',
   'Something in the Substrate shifted. Roll?',
   'Calibration holds. Probably',
+
+  // Impatient system
+  'Input your intent. Try to make it a good one.',
+  'Waiting for a neural signal... any day now.',
+  "Syncing... don't tell me you're lagging.",
+  "What's the plan? Hopefully something better than the last one.",
+  "I'm ready. Are you, or are we just staring at the screen?",
+  'System active. Give me something worth calculating.',
+
+  // Corporate handler
+  'Input your next billable action.',
+  'Efficiency is mandatory. What is your move?',
+  'Awaiting shareholder-approved input.',
+  'Optimizing for maximum profit. Go.',
+  "Don't waste the company's nanites. What are you doing?",
+  'State your objective. High-risk maneuvers require clearance.',
+
+  // Gritty scavenger
+  'Got a death wish? Type it in.',
+  'How are you planning to survive this?',
+  "Scanning for threats... show me what you're made of.",
+  'Is that your final answer? The Substrate is watching.',
+
+  // Substrate mystic
+  'What do you wish to manifest from the void?',
+  'Reality is thin here. What are you pulling through?',
+  'The nanites are hungry. Feed them a roll.',
+  'Are you sure your mind can handle this sequence?',
+  'What does the Apex tell you to do?',
+
+  // Aggressively helpful
+  'Your move, hotshot.',
+  'Show me the numbers.',
+  'Roll or die. Your choice.',
+  'Execute. Now.',
+  "What's the play?",
 ];
 
 export function selectPrompt(previous: string | null): string {
