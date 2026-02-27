@@ -20,11 +20,16 @@ const Home: NextPage = () => {
     window.history.pushState(null, '', `?room=${slug}`);
   };
 
+  const handleRoomLeft = () => {
+    setRoomSlug(null);
+    window.history.pushState(null, '', window.location.pathname);
+  };
+
   if (!ready) return null;
 
   return (
     <div className={styles.App}>
-      <Roller roomSlug={roomSlug} onRoomCreated={handleRoomCreated} />
+      <Roller roomSlug={roomSlug} onRoomCreated={handleRoomCreated} onRoomLeft={handleRoomLeft} />
     </div>
   );
 };

@@ -18,12 +18,13 @@ import styles from './Roller.module.css';
 interface RollerProps {
   roomSlug?: string | null;
   onRoomCreated?: (slug: string) => void;
+  onRoomLeft?: () => void;
 }
 
 /**
  * Main dice roller component
  */
-export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
+export default function Roller({ roomSlug, onRoomCreated, onRoomLeft }: RollerProps) {
   const [rolls, setRolls] = useState<Roll[]>([]);
   const [text, setText] = useState('');
   const [dice, setDice] = useState<Die[]>([]);
@@ -200,10 +201,7 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
 
   const handleLeaveRoom = () => {
     leaveRoom();
-    // Navigate back to solo mode
-    if (typeof window !== 'undefined') {
-      window.history.pushState(null, '', window.location.pathname);
-    }
+    onRoomLeft?.();
   };
 
   const handleRetry = () => {
