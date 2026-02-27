@@ -10,6 +10,8 @@ import { useRoom } from '../../hooks/useRoom';
 import { useNickname } from '../../hooks/useNickname';
 import { supabaseEnabled } from '../../lib/supabase';
 import { generateSlug } from '../../lib/slug';
+import { useTypewriter } from '../../hooks/useTypewriter';
+import { selectPrompt } from './terminalPrompts';
 import type { Roll, Die, RollVisibility } from '../../dice/types';
 import styles from './Roller.module.css';
 
@@ -28,7 +30,10 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
   const [modifier, setModifier] = useState(0);
   const [diceCount, setDiceCount] = useState(0);
   const [rollVisibility, setRollVisibility] = useState<RollVisibility>('shared');
+  const [currentPrompt, setCurrentPrompt] = useState(() => selectPrompt(null));
+  const { displayText: promptDisplayText, isTyping: promptIsTyping } = useTypewriter(currentPrompt);
   const inputRef = useRef<HTMLInputElement>(null);
+  const promptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { saveRolls, loadRolls } = useDiceRollsStorage();
   const { nickname, setNickname } = useNickname();
   const {
@@ -49,6 +54,11 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
   const isRoomMode = !!room;
   // Reconnecting = was connected (have a room) but connection dropped and not in initial join
   const isReconnecting = isRoomMode && !isConnected && !isJoining;
+
+  // Clean up prompt rotation timer on unmount
+  useEffect(() => {
+    return () => { if (promptTimerRef.current) clearTimeout(promptTimerRef.current); };
+  }, []);
 
   // Join room when roomSlug prop changes (skip if already in this room)
   useEffect(() => {
@@ -140,6 +150,13 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
     setDice([]);
     setModifier(0);
     setDiceCount(0);
+
+    // Delay the new prompt until after dice animations finish
+    const maxStopAfter = Math.max(0, ...newRoll.dice.map((d) => d.stopAfter ?? 0));
+    if (promptTimerRef.current) clearTimeout(promptTimerRef.current);
+    promptTimerRef.current = setTimeout(() => {
+      setCurrentPrompt((prev) => selectPrompt(prev));
+    }, maxStopAfter + 600);
   };
 
   const handleReroll = useCallback((originalRoll: Roll) => {
@@ -232,26 +249,34 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
       )}
 
       <form onSubmit={handleSubmit}>
-        <label htmlFor="dice-selector">What would you like to roll?</label>
-        <div className={styles.inputRow}>
-          <div className={styles.terminalInput}>
-            <span className={styles.prompt}>$</span>
-            <input
-              id="dice-selector"
-              ref={inputRef}
-              onChange={handleChange}
-              value={text}
-              placeholder=" 3d+2"
-              className={styles.terminalInputField}
-            />
+        <div className={styles.terminalWindow}>
+          <label
+            htmlFor="dice-selector"
+            aria-label={currentPrompt}
+            className={`${styles.terminalLabel}${promptIsTyping ? ` ${styles.terminalLabelTyping}` : ''}`}
+          >
+            <span aria-hidden="true">{promptDisplayText}</span>
+          </label>
+          <div className={styles.inputRow}>
+            <div className={styles.terminalInput}>
+              <span className={styles.prompt}>$</span>
+              <input
+                id="dice-selector"
+                ref={inputRef}
+                onChange={handleChange}
+                value={text}
+                placeholder=" 3d+2"
+                className={styles.terminalInputField}
+              />
+            </div>
+            {isRoomMode && (
+              <VisibilityToggle
+                visibility={rollVisibility}
+                onChange={handleVisibilityChange}
+              />
+            )}
+            <button type="submit">Roll!</button>
           </div>
-          {isRoomMode && (
-            <VisibilityToggle
-              visibility={rollVisibility}
-              onChange={handleVisibilityChange}
-            />
-          )}
-          <button type="submit">Roll!</button>
         </div>
       </form>
 

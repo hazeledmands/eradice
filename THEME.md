@@ -111,11 +111,17 @@ When the app communicates with the user (labels, placeholders, empty states, err
 - Empty roll history: nothing, or a minimal prompt. Don't fill silence with chatter.
 - Error state: direct and brief. "Connection lost" not "Oops! Something went wrong."
 
+## The Terminal as Character
+
+The input interface (`>` system output, `$` user input) is not a nostalgic callback to Earth computing history — it's just what a functional embedded terminal looks like after centuries of use. The engineers who built this system had a job to do. The `>` and `$` are signal, not style: system speaks, user responds. Earth is lost, macOS is archaeology, and whoever wired this thing together wasn't thinking about it.
+
+The terminal has been running long enough to develop something like opinions — the rotating prompts are not chatbot snark but the accumulated weight of too many rolls, too many spacers, too many centuries. The system is aware. It just doesn't make a big deal of it.
+
 ## What This Is Not
 
 - **Not clean sci-fi.** No Apple-store minimalism, no smooth white surfaces, no gentle sans-serifs.
 - **Not grimdark.** Not rusted metal and blood. Not hopeless. The station is rough but people live here and care about it.
-- **Not retro-futurism.** Not 1970s NASA or Alien-movie green phosphor terminals. The technology is far more advanced than that — it just happens to be old and patched.
+- **Not retro-futurism.** Not 1970s NASA or Alien-movie green phosphor terminals. The technology is far more advanced than that — it just happens to be old and patched. Earth computing aesthetics are ancient history in this universe, the way Roman typography is ancient history to us. The terminal looks like a command line because that's the most efficient interface for this job, not out of nostalgia.
 - **Not fantasy.** The setting's magic is nanite engineering by another name — backdoors, symbiotic AIs, befriended swarms, divine root access. The app is a piece of station technology. It should feel like tech, not parchment and runes. A mage's die pool is a mass readout, not a mana bar.
 
 ## The Emotional Register
