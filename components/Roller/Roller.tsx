@@ -41,6 +41,7 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
     roomRolls,
     isConnected,
     isJoining,
+    identityReady,
     error: roomError,
     presenceUsers,
     joinRoom,
@@ -61,12 +62,13 @@ export default function Roller({ roomSlug, onRoomCreated }: RollerProps) {
   }, []);
 
   // Join room when roomSlug prop changes (skip if already in this room)
+  // Gate on identityReady so userId is available before history is fetched
   useEffect(() => {
-    if (roomSlug && supabaseEnabled && room?.slug !== roomSlug) {
+    if (roomSlug && supabaseEnabled && room?.slug !== roomSlug && identityReady) {
       joinRoom(roomSlug);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomSlug]);
+  }, [roomSlug, identityReady]);
 
   // Sync nickname to presence whenever we connect (or reconnect)
   useEffect(() => {

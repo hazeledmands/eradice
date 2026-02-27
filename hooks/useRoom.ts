@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase, supabaseEnabled } from '../lib/supabase';
 import { generateSlug } from '../lib/slug';
+import { useIdentity } from './useIdentity';
 import type { Roll, RoomRoll, RollVisibility } from '../dice/types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -15,6 +16,7 @@ export interface PresenceUser {
 }
 
 export function useRoom() {
+  const { userId, isReady: identityReady } = useIdentity();
   const [room, setRoom] = useState<RoomState | null>(null);
   const [roomRolls, setRoomRolls] = useState<RoomRoll[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -61,12 +63,13 @@ export function useRoom() {
             roll_data: Roll;
             visibility?: string;
             is_revealed?: boolean;
+            user_id?: string;
           };
           if (row.room_id !== roomId) return;
           const incoming: RoomRoll = {
             ...row.roll_data,
             nickname: row.user_nickname,
-            isLocal: false,
+            isLocal: !!userId && row.user_id === userId,
             shouldAnimate: true,
             visibility: (row.visibility as RollVisibility) || 'shared',
             isRevealed: row.is_revealed || false,
@@ -166,7 +169,7 @@ export function useRoom() {
     const history: RoomRoll[] = (historyRows ?? []).map((row) => ({
       ...(row.roll_data as Roll),
       nickname: row.user_nickname,
-      isLocal: false,
+      isLocal: !!userId && row.user_id === userId,
       shouldAnimate: false,
       visibility: (row.visibility as RollVisibility) || 'shared',
       isRevealed: row.is_revealed || false,
@@ -272,6 +275,7 @@ export function useRoom() {
       user_nickname: nickname,
       roll_data: roll,
       visibility,
+      user_id: userId ?? undefined,
     });
   }, [room]);
 
@@ -336,6 +340,7 @@ export function useRoom() {
     roomRolls,
     isConnected,
     isJoining,
+    identityReady,
     error,
     presenceUsers,
     createRoom,
