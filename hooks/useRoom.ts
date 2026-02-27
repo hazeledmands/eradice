@@ -17,6 +17,8 @@ export interface PresenceUser {
 
 export function useRoom() {
   const { userId, isReady: identityReady } = useIdentity();
+  const userIdRef = useRef<string | null>(null);
+  useEffect(() => { userIdRef.current = userId; }, [userId]);
   const [room, setRoom] = useState<RoomState | null>(null);
   const [roomRolls, setRoomRolls] = useState<RoomRoll[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -69,7 +71,7 @@ export function useRoom() {
           const incoming: RoomRoll = {
             ...row.roll_data,
             nickname: row.user_nickname,
-            isLocal: !!userId && row.user_id === userId,
+            isLocal: !!userIdRef.current && row.user_id === userIdRef.current,
             shouldAnimate: true,
             visibility: (row.visibility as RollVisibility) || 'shared',
             isRevealed: row.is_revealed || false,
@@ -169,7 +171,7 @@ export function useRoom() {
     const history: RoomRoll[] = (historyRows ?? []).map((row) => ({
       ...(row.roll_data as Roll),
       nickname: row.user_nickname,
-      isLocal: !!userId && row.user_id === userId,
+      isLocal: !!userIdRef.current && row.user_id === userIdRef.current,
       shouldAnimate: false,
       visibility: (row.visibility as RollVisibility) || 'shared',
       isRevealed: row.is_revealed || false,
@@ -275,7 +277,7 @@ export function useRoom() {
       user_nickname: nickname,
       roll_data: roll,
       visibility,
-      user_id: userId ?? undefined,
+      user_id: userIdRef.current ?? undefined,
     });
   }, [room]);
 
