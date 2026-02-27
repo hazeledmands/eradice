@@ -169,7 +169,7 @@
 
 .DiceTray {
   border-radius: 8px;
-  background: rgba(8, 18, 28, 0.7);
+  background: rgba(8, 18, 28, 0.95);
   backdrop-filter: blur(5px);
   padding: 1.5rem;
   margin: 1.5rem 0;
