@@ -4,6 +4,7 @@ import { calculateRollResult, generateCopyText } from '../../dice/calculations';
 import { copyToClipboard } from '../../utils/clipboard';
 import type { Roll } from '../../dice/types';
 import styles from './DiceTray.module.css';
+import FractalEffect from '../FractalEffect/FractalEffect';
 
 interface DiceTrayProps {
   roll: Roll | null;
@@ -297,6 +298,7 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
 
   return (
     <div className={trayClassName} style={trayStyle}>
+      <FractalEffect />
       <div className={styles.controls}>
         {(roll?.dice || []).map((die, dieIndex) => {
           // Hide explosion/CP dice until the previous die has stopped,
