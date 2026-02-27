@@ -10,7 +10,7 @@
     url('/station-grime.png'),
     rgba(5, 10, 20, 0.85);
   background-size:
-    100%, 100%, 100%, 100%, 100%,
+    100% 500px, 100% 500px, 100% 500px, 100% 500px, 100% 500px,
     200px 200px,
     auto;
   background-repeat:
