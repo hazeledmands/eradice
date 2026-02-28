@@ -12,6 +12,7 @@ const FRAG_SRC = `
 precision mediump float;
 
 uniform vec2  u_resolution;
+uniform vec2  u_center;
 uniform float u_time;
 uniform float u_opacity;
 
@@ -43,9 +44,9 @@ vec3 palette(float t) {
 void main() {
   vec2 uv = gl_FragCoord.xy / u_resolution;
 
-  // Map to [-1.5, 1.5] centered, maintaining aspect
+  // Map to fractal space, centered on u_center (wild die position)
   float aspect = u_resolution.x / u_resolution.y;
-  vec2 z = (uv - 0.5) * vec2(aspect * 3.0, 3.0);
+  vec2 z = (uv - u_center) * vec2(aspect * 1.5, 1.5);
 
   // Julia parameter: c = 0.7885 * e^(i * t * 0.25)
   float angle = u_time * 0.25;
@@ -77,7 +78,7 @@ void main() {
   vec3  color  = palette(t);
 
   // Radial vignette: fade to transparent at edges
-  float vignette = 1.0 - smoothstep(0.3, 0.75, length(uv - 0.5));
+  float vignette = 1.0 - smoothstep(0.3, 0.75, length(uv - u_center));
 
   float alpha = vignette * u_opacity;
   gl_FragColor = vec4(color * alpha, alpha);
@@ -86,16 +87,17 @@ void main() {
 
 interface Props {
   opacity?: number;
+  center?: { x: number; y: number };
 }
 
-export default function FractalEffect({ opacity = 1 }: Props) {
+export default function FractalEffect({ opacity = 1, center = { x: 0.5, y: 0.5 } }: Props) {
   const canvasRef  = useRef<HTMLCanvasElement>(null);
   const opacityRef = useRef(opacity);
+  const centerRef  = useRef(center);
 
-  // Keep opacity ref in sync without triggering re-setup
-  useEffect(() => {
-    opacityRef.current = opacity;
-  }, [opacity]);
+  // Keep live-value refs in sync without triggering re-setup
+  useEffect(() => { opacityRef.current = opacity; }, [opacity]);
+  useEffect(() => { centerRef.current  = center;  }, [center]);
 
   useEffect(() => {
     // SSR guard
@@ -150,6 +152,7 @@ export default function FractalEffect({ opacity = 1 }: Props) {
 
     const aPos       = gl.getAttribLocation(program,  'a_pos');
     const uRes       = gl.getUniformLocation(program, 'u_resolution');
+    const uCenter    = gl.getUniformLocation(program, 'u_center');
     const uTime      = gl.getUniformLocation(program, 'u_time');
     const uOpacity   = gl.getUniformLocation(program, 'u_opacity');
 
@@ -187,6 +190,7 @@ export default function FractalEffect({ opacity = 1 }: Props) {
       resize();
       const t = (performance.now() - startTime) * 0.001;
       gl.uniform2f(uRes,     canvas.width, canvas.height);
+      gl.uniform2f(uCenter,  centerRef.current.x, centerRef.current.y);
       gl.uniform1f(uTime,    t);
       gl.uniform1f(uOpacity, opacityRef.current);
       gl.drawArrays(gl.TRIANGLES, 0, 3);

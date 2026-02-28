@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import Die from '../Die/Die';
 import { calculateRollResult, generateCopyText } from '../../dice/calculations';
 import { copyToClipboard } from '../../utils/clipboard';
@@ -281,6 +281,34 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
     onSpendCp(roll.id, count);
   };
 
+  // Measure wild die position for fractal centering
+  const trayRef     = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const [fractalCenter, setFractalCenter] = useState({ x: 0.5, y: 0.5 });
+
+  useLayoutEffect(() => {
+    const diceCount = roll?.diceCount ?? 0;
+    if (!diceCount) return;
+
+    function measure() {
+      const tray    = trayRef.current;
+      const controls = controlsRef.current;
+      if (!tray || !controls) return;
+      const wildDie = controls.children[diceCount - 1] as HTMLElement | undefined;
+      if (!wildDie) return;
+      const trayRect = tray.getBoundingClientRect();
+      const dieRect  = wildDie.getBoundingClientRect();
+      const cx = (dieRect.left + dieRect.width  / 2 - trayRect.left) / trayRect.width;
+      const cy = 1.0 - (dieRect.top  + dieRect.height / 2 - trayRect.top)  / trayRect.height;
+      setFractalCenter({ x: cx, y: cy });
+    }
+
+    const ro = new ResizeObserver(measure);
+    if (trayRef.current) ro.observe(trayRef.current);
+    measure();
+    return () => ro.disconnect();
+  }, [roll?.diceCount]);
+
   // Build tray class name
   let trayClassName = styles.DiceTray;
   if (trayBursting) trayClassName += ` ${styles.trayBursting}`;
@@ -297,9 +325,9 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
   }
 
   return (
-    <div className={trayClassName} style={trayStyle}>
-      <FractalEffect />
-      <div className={styles.controls}>
+    <div ref={trayRef} className={trayClassName} style={trayStyle}>
+      <FractalEffect center={fractalCenter} />
+      <div ref={controlsRef} className={styles.controls}>
         {(roll?.dice || []).map((die, dieIndex) => {
           // Hide explosion/CP dice until the previous die has stopped,
           // so they don't spoil the surprise of the preceding die's result
