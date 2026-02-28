@@ -102,7 +102,7 @@ void main() {
 
   float t        = smooth_iter / 20.0 + st * 0.04;
   vec3  color    = palette(t);
-  float vignette = 1.0 - smoothstep(0.3, 0.75, length(uv - u_center));
+  float vignette = 1.0 - smoothstep(0.15, 0.55, length(uv - u_center));
   float alpha    = vignette * u_opacity;
   gl_FragColor   = vec4(color * alpha, alpha);
 }
@@ -112,9 +112,10 @@ void main() {
 interface Props {
   opacity?: number;
   center?: { x: number; y: number };
+  active?: boolean;
 }
 
-export default function FractalEffect({ opacity = 1, center = { x: 0.5, y: 0.5 } }: Props) {
+export default function FractalEffect({ opacity = 1, center = { x: 0.5, y: 0.5 }, active = false }: Props) {
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const opacityRef  = useRef(opacity);
   const centerRef   = useRef(center);
@@ -229,5 +230,6 @@ export default function FractalEffect({ opacity = 1, center = { x: 0.5, y: 0.5 }
     };
   }, []); // run once; algIndex.current is set before effect runs
 
-  return <canvas ref={canvasRef} className={styles.canvas} />;
+  const cls = [styles.canvas, active ? styles.active : ''].filter(Boolean).join(' ');
+  return <canvas ref={canvasRef} className={cls} />;
 }

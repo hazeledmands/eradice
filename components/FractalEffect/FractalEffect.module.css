@@ -6,7 +6,13 @@
   pointer-events: none;
   z-index: 0;
   mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity 0.9s ease-out; /* fade out when superseded */
+}
+
+.active {
   opacity: 0.55;
+  transition: opacity 1.4s ease-in; /* fade in after burst settles */
 }
 
 @media (prefers-reduced-motion: reduce) {

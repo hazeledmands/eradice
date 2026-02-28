@@ -38,6 +38,11 @@ export default function Ledger({ rolls, isRoomMode, onRevealRoll, onReroll, onSp
     return true;
   });
 
+  // Fractal only on the most recent critical success (a chained explosion die)
+  const mostRecentCritId = visibleRolls.find((roll) =>
+    roll.dice?.some((die) => die.chainDepth != null && die.chainDepth >= 1)
+  )?.id;
+
   return (
     <div className={styles.Ledger}>
       <ul>
@@ -98,6 +103,7 @@ export default function Ledger({ rolls, isRoomMode, onRevealRoll, onReroll, onSp
                   onReroll={onReroll}
                   onSpendCp={onSpendCp}
                   canSpendCp={canSpendCp}
+                  showFractal={roll.id === mostRecentCritId}
                 />
               )}
               {showReveal && onRevealRoll && (

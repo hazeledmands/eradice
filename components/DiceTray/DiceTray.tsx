@@ -11,6 +11,7 @@ interface DiceTrayProps {
   onReroll?: (roll: Roll) => void;
   onSpendCp?: (rollId: number, count: number) => void;
   canSpendCp?: boolean;
+  showFractal?: boolean;
 }
 
 /**
@@ -19,7 +20,7 @@ interface DiceTrayProps {
  * - Starts first diceCount dice rolling
  * - Then animates exploding dice one by one
  */
-export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: DiceTrayProps) {
+export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp, showFractal = false }: DiceTrayProps) {
   const [diceCompleteStates, setDiceCompleteStates] = useState<boolean[]>([]);
   const [showCpPicker, setShowCpPicker] = useState(false);
   const prevDiceCountRef = useRef(0);
@@ -281,6 +282,17 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
     onSpendCp(roll.id, count);
   };
 
+  // Fractal: delay activation by 600ms after completion so it appears after the burst settles
+  const [fractalActive, setFractalActive] = useState(false);
+  useEffect(() => {
+    if (isComplete && hasCritSuccess && showFractal) {
+      const t = setTimeout(() => setFractalActive(true), 600);
+      return () => clearTimeout(t);
+    } else {
+      setFractalActive(false);
+    }
+  }, [isComplete, hasCritSuccess, showFractal]);
+
   // Measure wild die position for fractal centering
   const trayRef     = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
@@ -326,7 +338,7 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp }: Dice
 
   return (
     <div ref={trayRef} className={trayClassName} style={trayStyle}>
-      <FractalEffect center={fractalCenter} />
+      {showFractal && <FractalEffect center={fractalCenter} active={fractalActive} />}
       <div ref={controlsRef} className={styles.controls}>
         {(roll?.dice || []).map((die, dieIndex) => {
           // Hide explosion/CP dice until the previous die has stopped,
