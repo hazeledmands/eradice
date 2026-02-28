@@ -1,14 +1,14 @@
 import { useEffect, useRef } from 'react';
 import styles from './FractalEffect.module.css';
 
-const VERT_SRC = `#version 100
+const VERT_SRC = `
 attribute vec2 a_pos;
 void main() {
   gl_Position = vec4(a_pos, 0.0, 1.0);
 }
 `;
 
-const FRAG_SRC = `#version 100
+const FRAG_SRC = `
 precision mediump float;
 
 uniform vec2  u_resolution;
@@ -17,22 +17,27 @@ uniform float u_opacity;
 
 // 4-stop palette: cyan → purple → magenta → gold
 vec3 palette(float t) {
-  // Wrap t into [0,1)
   t = fract(t);
-  vec3 cyan    = vec3(0.0,    1.0,    1.0);
-  vec3 purple  = vec3(0.627,  0.314,  1.0);
-  vec3 magenta = vec3(0.863,  0.235,  0.784);
-  vec3 gold    = vec3(1.0,    0.784,  0.196);
+  vec3 cyan    = vec3(0.0,   1.0,   1.0);
+  vec3 purple  = vec3(0.627, 0.314, 1.0);
+  vec3 magenta = vec3(0.863, 0.235, 0.784);
+  vec3 gold    = vec3(1.0,   0.784, 0.196);
 
-  // Four equal segments
-  float s = t * 4.0;
-  int   i = int(s);
-  float f = fract(s);
+  float s   = t * 4.0;
+  float f   = fract(s);
+  float seg = floor(s);  // 0, 1, 2, or 3
 
-  if (i == 0) return mix(cyan,    purple,  f);
-  if (i == 1) return mix(purple,  magenta, f);
-  if (i == 2) return mix(magenta, gold,    f);
-               return mix(gold,    cyan,    f);
+  // Compute all four adjacent blends; select via step (no integer branching)
+  vec3 ab  = mix(cyan,    purple,  f);
+  vec3 bc  = mix(purple,  magenta, f);
+  vec3 cd  = mix(magenta, gold,    f);
+  vec3 da  = mix(gold,    cyan,    f);
+
+  vec3 col = ab;
+  col = mix(col, bc, step(1.0, seg));
+  col = mix(col, cd, step(2.0, seg));
+  col = mix(col, da, step(3.0, seg));
+  return col;
 }
 
 void main() {
@@ -198,8 +203,6 @@ export default function FractalEffect({ opacity = 1 }: Props) {
       gl.deleteShader(vert);
       gl.deleteShader(frag);
       gl.deleteBuffer(buf);
-      const ext = gl.getExtension('WEBGL_lose_context');
-      if (ext) ext.loseContext();
     };
   }, []); // run once
 
