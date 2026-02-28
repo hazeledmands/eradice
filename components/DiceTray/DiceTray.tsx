@@ -211,7 +211,8 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp, showFr
   const hasCpDice = dice.some((die) => die.isCpDie);
 
   // Detect critical success (explosion chain) and critical failure (cancellation)
-  const hasCritSuccess = dice.some((die) => die.chainDepth != null && die.chainDepth >= 1);
+  const hasCritSuccess   = dice.some((die) => die.chainDepth != null && die.chainDepth >= 1);
+  const hasDoubleChain   = dice.some((die) => die.chainDepth != null && die.chainDepth >= 2);
   const hasCritFail = dice.some((die) => die.canExplodeFail && die.finalNumber === 1);
 
   // Show detailed math breakdown for crits and CP rolls
@@ -285,7 +286,7 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp, showFr
   // Fractal: delay activation by 600ms after completion so it appears after the burst settles
   const [fractalActive, setFractalActive] = useState(false);
   useEffect(() => {
-    if (isComplete && hasCritSuccess && showFractal) {
+    if (isComplete && hasDoubleChain && showFractal) {
       const t = setTimeout(() => setFractalActive(true), 600);
       return () => clearTimeout(t);
     } else {

@@ -40,7 +40,7 @@ export default function Ledger({ rolls, isRoomMode, onRevealRoll, onReroll, onSp
 
   // Fractal only on the most recent critical success (a chained explosion die)
   const mostRecentCritId = visibleRolls.find((roll) =>
-    roll.dice?.some((die) => die.chainDepth != null && die.chainDepth >= 1)
+    roll.dice?.some((die) => die.chainDepth != null && die.chainDepth >= 2)
   )?.id;
 
   return (
