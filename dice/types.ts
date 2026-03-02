@@ -47,3 +47,14 @@ export interface RoomRoll extends Roll {
   isRevealed?: boolean;
 }
 
+export interface RollComment {
+  id: string;             // crypto.randomUUID()
+  rollId: number;         // matches roll.id (Date.now()-based timestamp)
+  text: string;
+  visibility: 'public' | 'private';
+  authorNickname: string; // nickname in room mode; 'You' in solo
+  authorId?: string;      // Supabase auth.uid() for ownership
+  createdAt: string;      // ISO date string
+  updatedAt?: string;     // ISO date string if edited
+}
+

@@ -8,6 +8,8 @@ import { createRoll, createCpDice } from '../../dice/rolls';
 import { useDiceRollsStorage } from '../../hooks/useSessionStorage';
 import { useRoom } from '../../hooks/useRoom';
 import { useNickname } from '../../hooks/useNickname';
+import { useIdentity } from '../../hooks/useIdentity';
+import { useRollComments } from '../../hooks/useRollComments';
 import { supabaseEnabled } from '../../lib/supabase';
 import { generateSlug } from '../../lib/slug';
 import { useTypewriter } from '../../hooks/useTypewriter';
@@ -52,6 +54,13 @@ export default function Roller({ roomSlug, onRoomCreated, onRoomLeft }: RollerPr
     leaveRoom,
     updatePresenceNickname,
   } = useRoom();
+
+  const { userId } = useIdentity();
+  const { commentsByRoll, addComment, editComment, deleteComment } = useRollComments({
+    roomId: room?.id,
+    userId: userId ?? undefined,
+    nickname,
+  });
 
   const isRoomMode = !!room;
   // Reconnecting = was connected (have a room) but connection dropped and not in initial join
@@ -292,7 +301,19 @@ export default function Roller({ roomSlug, onRoomCreated, onRoomLeft }: RollerPr
 
       {previewRoll && <DiceTray roll={previewRoll} />}
 
-      <Ledger rolls={displayRolls} isRoomMode={isRoomMode} onRevealRoll={revealRoll} onReroll={handleReroll} onSpendCp={handleSpendCp} />
+      <Ledger
+        rolls={displayRolls}
+        isRoomMode={isRoomMode}
+        onRevealRoll={revealRoll}
+        onReroll={handleReroll}
+        onSpendCp={handleSpendCp}
+        commentsByRoll={commentsByRoll}
+        onAddComment={addComment}
+        onEditComment={editComment}
+        onDeleteComment={deleteComment}
+        currentUserId={userId ?? undefined}
+        currentNickname={nickname}
+      />
     </div>
   );
 }

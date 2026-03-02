@@ -416,6 +416,42 @@
   color: #aaa;
 }
 
+.notesButton {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.4rem 0.6rem;
+  background: rgba(8, 18, 28, 0.9);
+  color: rgba(0, 255, 255, 0.55);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  line-height: 1;
+}
+
+.notesButton:hover {
+  color: rgba(0, 255, 255, 0.85);
+  border-color: rgba(0, 255, 255, 0.45);
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.1);
+}
+
+.notesButtonActive {
+  color: #00ffff;
+  border-color: rgba(0, 255, 255, 0.55);
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.15);
+}
+
+.commentCount {
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 0.7rem;
+  color: #00ffaa;
+}
+
 .criticalLabel {
   font-family: 'Orbitron', sans-serif;
   font-size: 0.7rem;

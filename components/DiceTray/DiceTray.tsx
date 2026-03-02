@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import Die from '../Die/Die';
+import CommentThread from '../CommentThread/CommentThread';
 import { calculateRollResult, generateCopyText, generateMathText } from '../../dice/calculations';
 import { copyToClipboard } from '../../utils/clipboard';
-import type { Roll } from '../../dice/types';
+import type { Roll, RollComment } from '../../dice/types';
 import styles from './DiceTray.module.css';
 import FractalEffect from '../FractalEffect/FractalEffect';
 
@@ -12,6 +13,13 @@ interface DiceTrayProps {
   onSpendCp?: (rollId: number, count: number) => void;
   canSpendCp?: boolean;
   showFractal?: boolean;
+  comments?: RollComment[];
+  onAddComment?: (rollId: number, text: string, visibility: 'public' | 'private') => void;
+  onEditComment?: (id: string, text: string) => void;
+  onDeleteComment?: (id: string) => void;
+  currentUserId?: string;
+  currentNickname?: string;
+  isRoomMode?: boolean;
 }
 
 /**
@@ -20,9 +28,14 @@ interface DiceTrayProps {
  * - Starts first diceCount dice rolling
  * - Then animates exploding dice one by one
  */
-export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp, showFractal = false }: DiceTrayProps) {
+export default function DiceTray({
+  roll, onReroll, onSpendCp, canSpendCp, showFractal = false,
+  comments = [], onAddComment, onEditComment, onDeleteComment,
+  currentUserId, currentNickname = 'You', isRoomMode = false,
+}: DiceTrayProps) {
   const [diceCompleteStates, setDiceCompleteStates] = useState<boolean[]>([]);
   const [showCpPicker, setShowCpPicker] = useState(false);
+  const [showComments, setShowComments] = useState(false);
   const prevDiceCountRef = useRef(0);
 
   // Tray-level explosion effects
@@ -377,9 +390,31 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp, showFr
                 </button>
               )
             )}
+            {onAddComment && roll && (
+              <button
+                className={`${styles.notesButton}${showComments ? ` ${styles.notesButtonActive}` : ''}`}
+                onClick={() => setShowComments((v) => !v)}
+                title={showComments ? 'Hide notes' : 'Add notes'}
+                aria-expanded={showComments}
+              >
+                💬{comments.length > 0 && <span className={styles.commentCount}>{comments.length}</span>}
+              </button>
+            )}
           </div>
         </React.Fragment>)}
       </div>
+      {showComments && roll && onAddComment && onEditComment && onDeleteComment && (
+        <CommentThread
+          rollId={roll.id}
+          comments={comments}
+          currentUserId={currentUserId}
+          currentNickname={currentNickname}
+          isRoomMode={isRoomMode}
+          onAdd={(text, visibility) => onAddComment(roll.id, text, visibility)}
+          onEdit={onEditComment}
+          onDelete={onDeleteComment}
+        />
+      )}
     </div>
   );
 }

@@ -1,0 +1,273 @@
+.commentThread {
+  margin-top: 0.75rem;
+  border-top: 1px solid rgba(0, 255, 255, 0.12);
+  padding-top: 0.75rem;
+}
+
+.emptyState {
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 0.75rem;
+  color: rgba(0, 255, 255, 0.3);
+  margin: 0 0 0.5rem;
+}
+
+.commentList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.commentItem {
+  background: rgba(0, 255, 255, 0.03);
+  border: 1px solid rgba(0, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+}
+
+.commentItem:hover .commentActions {
+  opacity: 1;
+}
+
+.commentHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.2rem;
+}
+
+.commentAuthor {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #00ccff;
+  letter-spacing: 0.5px;
+}
+
+.commentMeta {
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 0.68rem;
+  color: rgba(0, 255, 255, 0.35);
+}
+
+.privateBadge {
+  font-size: 0.7rem;
+  opacity: 0.6;
+  margin-left: 0.1rem;
+}
+
+.commentActions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.actionBtn {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  background: transparent;
+  color: rgba(0, 255, 170, 0.5);
+  border: 1px solid rgba(0, 255, 170, 0.2);
+  border-radius: 3px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  line-height: 1.4;
+}
+
+.actionBtn:hover {
+  color: #00ffaa;
+  border-color: rgba(0, 255, 170, 0.5);
+}
+
+.commentText {
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: rgba(200, 240, 255, 0.85);
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+/* Edit mode */
+.editArea {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.editTextarea {
+  width: 100%;
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: rgba(200, 240, 255, 0.9);
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 3px;
+  padding: 0.4rem 0.5rem;
+  resize: none;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.editTextarea:focus {
+  border-color: rgba(0, 255, 255, 0.6);
+  box-shadow: 0 0 6px rgba(0, 255, 255, 0.15);
+}
+
+.editButtons {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.saveBtn {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.25rem 0.7rem;
+  background: rgba(0, 255, 170, 0.1);
+  color: #00ffaa;
+  border: 1px solid rgba(0, 255, 170, 0.4);
+  border-radius: 3px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.saveBtn:hover {
+  background: rgba(0, 255, 170, 0.18);
+  border-color: rgba(0, 255, 170, 0.65);
+}
+
+.cancelBtn {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.25rem 0.7rem;
+  background: transparent;
+  color: rgba(0, 255, 255, 0.4);
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  border-radius: 3px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.cancelBtn:hover {
+  color: rgba(0, 255, 255, 0.7);
+  border-color: rgba(0, 255, 255, 0.35);
+}
+
+/* Input area */
+.commentInput {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.inputTextarea {
+  width: 100%;
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: rgba(200, 240, 255, 0.9);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(0, 255, 255, 0.18);
+  border-radius: 4px;
+  padding: 0.5rem 0.65rem;
+  resize: none;
+  outline: none;
+  box-sizing: border-box;
+  overflow: hidden;
+  min-height: 36px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.inputTextarea::placeholder {
+  color: rgba(0, 255, 255, 0.2);
+}
+
+.inputTextarea:focus {
+  border-color: rgba(0, 255, 255, 0.4);
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.1);
+}
+
+.inputRow {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.visibilityToggle {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 3px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  line-height: 1.4;
+}
+
+.visibilityPublic {
+  background: rgba(0, 204, 255, 0.08);
+  color: #00ccff;
+  border: 1px solid rgba(0, 204, 255, 0.3);
+}
+
+.visibilityPublic:hover {
+  background: rgba(0, 204, 255, 0.15);
+  border-color: rgba(0, 204, 255, 0.55);
+}
+
+.visibilityPrivate {
+  background: rgba(180, 100, 255, 0.08);
+  color: #b46fff;
+  border: 1px solid rgba(180, 100, 255, 0.3);
+}
+
+.visibilityPrivate:hover {
+  background: rgba(180, 100, 255, 0.15);
+  border-color: rgba(180, 100, 255, 0.55);
+}
+
+.postBtn {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.25rem 0.8rem;
+  background: rgba(0, 255, 170, 0.08);
+  color: #00ffaa;
+  border: 1px solid rgba(0, 255, 170, 0.3);
+  border-radius: 3px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.postBtn:hover:not(:disabled) {
+  background: rgba(0, 255, 170, 0.16);
+  border-color: rgba(0, 255, 170, 0.6);
+}
+
+.postBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .commentActions {
+    opacity: 1;
+  }
+}

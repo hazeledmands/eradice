@@ -1,6 +1,6 @@
 import React from 'react';
 import DiceTray from '../DiceTray/DiceTray';
-import type { Roll, RoomRoll } from '../../dice/types';
+import type { Roll, RoomRoll, RollComment } from '../../dice/types';
 import styles from './Ledger.module.css';
 
 interface LedgerProps {
@@ -9,6 +9,12 @@ interface LedgerProps {
   onRevealRoll?: (rollId: number) => void;
   onReroll?: (roll: Roll) => void;
   onSpendCp?: (rollId: number, count: number) => void;
+  commentsByRoll?: Record<number, RollComment[]>;
+  onAddComment?: (rollId: number, text: string, visibility: 'public' | 'private') => void;
+  onEditComment?: (id: string, text: string) => void;
+  onDeleteComment?: (id: string) => void;
+  currentUserId?: string;
+  currentNickname?: string;
 }
 
 function isRoomRoll(roll: Roll): roll is RoomRoll {
@@ -19,7 +25,11 @@ function isRoomRoll(roll: Roll): roll is RoomRoll {
  * Component that displays the history of all rolls
  * Simply renders a list of DiceTray components, each managing its own state timing logic
  */
-export default function Ledger({ rolls, isRoomMode, onRevealRoll, onReroll, onSpendCp }: LedgerProps) {
+export default function Ledger({
+  rolls, isRoomMode, onRevealRoll, onReroll, onSpendCp,
+  commentsByRoll, onAddComment, onEditComment, onDeleteComment,
+  currentUserId, currentNickname,
+}: LedgerProps) {
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     return date.toLocaleString(undefined, {
@@ -104,6 +114,13 @@ export default function Ledger({ rolls, isRoomMode, onRevealRoll, onReroll, onSp
                   onSpendCp={onSpendCp}
                   canSpendCp={canSpendCp}
                   showFractal={roll.id === mostRecentCritId}
+                  comments={commentsByRoll?.[roll.id] ?? []}
+                  onAddComment={onAddComment}
+                  onEditComment={onEditComment}
+                  onDeleteComment={onDeleteComment}
+                  currentUserId={currentUserId}
+                  currentNickname={currentNickname}
+                  isRoomMode={isRoomMode}
                 />
               )}
               {showReveal && onRevealRoll && (
