@@ -46,9 +46,16 @@
 }
 
 .privateBadge {
-  font-size: 0.7rem;
-  opacity: 0.6;
-  margin-left: 0.1rem;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(204, 68, 255, 0.7);
+  border: 1px solid rgba(204, 68, 255, 0.3);
+  border-radius: 3px;
+  padding: 0 0.3rem;
+  line-height: 1.5;
 }
 
 .commentActions {
@@ -197,37 +204,41 @@
 
 .visibilityToggle {
   flex-shrink: 0;
-  font-size: 0.85rem;
-  width: 36px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
   height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
+  padding: 0 0.75rem;
+  background: rgba(0, 10, 20, 0.9);
+  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
-  line-height: 1;
-  padding: 0;
+  white-space: nowrap;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, text-shadow 0.2s ease;
 }
 
 .visibilityPublic {
-  background: rgba(0, 204, 255, 0.06);
-  border: 1px solid rgba(0, 204, 255, 0.25);
+  color: rgba(0, 255, 255, 0.8);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 4px rgba(0, 255, 255, 0.3);
 }
 
 .visibilityPublic:hover {
-  background: rgba(0, 204, 255, 0.14);
-  border-color: rgba(0, 204, 255, 0.5);
+  border-color: rgba(0, 255, 255, 0.6);
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
 }
 
 .visibilityPrivate {
-  background: rgba(180, 100, 255, 0.06);
-  border: 1px solid rgba(180, 100, 255, 0.25);
+  color: #cc44ff;
+  border: 1px solid rgba(204, 68, 255, 0.4);
+  text-shadow: 0 0 6px rgba(204, 68, 255, 0.4);
+  box-shadow: 0 0 6px rgba(204, 68, 255, 0.1);
 }
 
 .visibilityPrivate:hover {
-  background: rgba(180, 100, 255, 0.14);
-  border-color: rgba(180, 100, 255, 0.5);
+  border-color: rgba(204, 68, 255, 0.7);
+  box-shadow: 0 0 12px rgba(204, 68, 255, 0.25);
 }
 
 .postBtn {

@@ -71,7 +71,7 @@ function CommentItem({ comment, isOwner, onEdit, onDelete }: CommentItemProps) {
           {comment.updatedAt && ' · edited'}
         </span>
         {comment.visibility === 'private' && (
-          <span className={styles.privateBadge} title="Only visible to you">🔒</span>
+          <span className={styles.privateBadge} title="Only visible to you">secret</span>
         )}
         {isOwner && !editing && (
           <span className={styles.commentActions}>
@@ -194,7 +194,7 @@ export default function CommentThread({
             onClick={() => setVisibility((v) => v === 'public' ? 'private' : 'public')}
             title={visibility === 'public' ? 'Public — visible to everyone' : 'Private — only you see this'}
           >
-            {visibility === 'public' ? '🌐' : '🔒'}
+            {visibility === 'public' ? 'shared' : 'secret'}
           </button>
         )}
         <button
