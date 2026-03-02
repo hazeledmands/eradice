@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import Die from '../Die/Die';
-import { calculateRollResult, generateCopyText } from '../../dice/calculations';
+import { calculateRollResult, generateCopyText, generateMathText } from '../../dice/calculations';
 import { copyToClipboard } from '../../utils/clipboard';
 import type { Roll } from '../../dice/types';
 import styles from './DiceTray.module.css';
@@ -215,53 +215,10 @@ export default function DiceTray({ roll, onReroll, onSpendCp, canSpendCp, showFr
   const hasDoubleChain   = dice.some((die) => die.chainDepth != null && die.chainDepth >= 2);
   const hasCritFail = dice.some((die) => die.canExplodeFail && die.finalNumber === 1);
 
-  // Show detailed math breakdown for crits and CP rolls
-  const showDetailedMath = hasAllFinalNumbers && (hasCritSuccess || hasCritFail || hasCpDice);
-  const modifier = roll?.modifier || 0;
-
-  const mathContent = useMemo(() => {
-    if (!hasAllFinalNumbers) return null;
-
-    if (showDetailedMath) {
-      const parts: string[] = [];
-      const nonCpDice = dice.filter((d) => !d.isCpDie);
-      const cpDice = dice.filter((d) => d.isCpDie);
-      const cpSum = cpDice.reduce((acc, d) => (d.finalNumber ?? 0) + acc, 0);
-
-      if (hasCritFail) {
-        // Raw sum of all non-CP dice, minus what was cancelled
-        const rawSum = nonCpDice.reduce((acc, d) => (d.finalNumber ?? 0) + acc, 0);
-        const cancelledSum = dice
-          .filter((d) => d.isCancelled)
-          .reduce((acc, d) => (d.finalNumber ?? 0) + acc, 0);
-        parts.push(`${rawSum} \u2212 ${cancelledSum}`);
-      } else {
-        // Crit success or CP: base dice + chain dice
-        const baseDice = nonCpDice.filter((d) => !d.isExploding);
-        const chainDice = nonCpDice.filter((d) => d.isExploding);
-        const baseSum = baseDice.reduce((acc, d) => (d.finalNumber ?? 0) + acc, 0);
-        const chainSum = chainDice.reduce((acc, d) => (d.finalNumber ?? 0) + acc, 0);
-
-        if (chainSum > 0) {
-          parts.push(`${baseSum} + ${chainSum}`);
-        } else {
-          parts.push(`${baseSum}`);
-        }
-      }
-
-      if (cpSum > 0) parts.push(`+ ${cpSum}`);
-      if (modifier > 0) parts.push(`+ ${modifier}`);
-      parts.push(`= ${totalFaces + modifier}`);
-      return parts.join(' ');
-    }
-
-    // Simple math (no crits/CP)
-    const text: string[] = [];
-    if (dice.length > 1 || hasCancelledDice) text.push(`= ${totalFaces}`);
-    if (modifier > 0) text.push(`+ ${modifier}`);
-    if (modifier > 0) text.push(`= ${modifier + totalFaces}`);
-    return text.length > 0 ? text.join(' ') : null;
-  }, [hasAllFinalNumbers, showDetailedMath, dice, modifier, totalFaces, hasCancelledDice, hasCritFail]);
+  const mathContent = useMemo(
+    () => (hasAllFinalNumbers ? generateMathText(roll!) : null),
+    [hasAllFinalNumbers, roll]
+  );
 
   // Calculate result for button display
   const result = roll ? calculateRollResult(roll) : null;
