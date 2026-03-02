@@ -156,14 +156,12 @@ export default function CommentThread({
 
   return (
     <div className={styles.commentThread}>
-      {comments.length === 0 ? (
-        <p className={styles.emptyState}>No notes yet</p>
-      ) : (
+      {comments.length > 0 && (
         <div className={styles.commentList}>
           {comments.map((comment) => {
             const isOwner =
               !currentUserId
-                ? comment.visibility === 'private' // solo: own all private
+                ? comment.visibility === 'private'
                 : comment.authorId === currentUserId || comment.visibility === 'private';
             return (
               <CommentItem

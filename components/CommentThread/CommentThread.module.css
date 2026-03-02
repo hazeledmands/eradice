@@ -4,12 +4,6 @@
   padding-top: 0.75rem;
 }
 
-.emptyState {
-  font-family: 'Share Tech Mono', 'Courier New', monospace;
-  font-size: 0.75rem;
-  color: rgba(0, 255, 255, 0.3);
-  margin: 0 0 0.5rem;
-}
 
 .commentList {
   display: flex;

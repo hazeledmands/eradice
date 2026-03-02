@@ -35,7 +35,6 @@ export default function DiceTray({
 }: DiceTrayProps) {
   const [diceCompleteStates, setDiceCompleteStates] = useState<boolean[]>([]);
   const [showCpPicker, setShowCpPicker] = useState(false);
-  const [showComments, setShowComments] = useState(false);
   const prevDiceCountRef = useRef(0);
 
   // Tray-level explosion effects
@@ -390,20 +389,10 @@ export default function DiceTray({
                 </button>
               )
             )}
-            {onAddComment && roll && (
-              <button
-                className={`${styles.notesButton}${showComments ? ` ${styles.notesButtonActive}` : ''}`}
-                onClick={() => setShowComments((v) => !v)}
-                title={showComments ? 'Hide notes' : 'Add notes'}
-                aria-expanded={showComments}
-              >
-                💬{comments.length > 0 && <span className={styles.commentCount}>{comments.length}</span>}
-              </button>
-            )}
           </div>
         </React.Fragment>)}
       </div>
-      {showComments && roll && onAddComment && onEditComment && onDeleteComment && (
+      {roll && onAddComment && onEditComment && onDeleteComment && (
         <CommentThread
           rollId={roll.id}
           comments={comments}
