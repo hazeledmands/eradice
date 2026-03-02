@@ -182,30 +182,29 @@ export default function CommentThread({
           value={inputText}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder="Add a note... (Enter to post, Shift+Enter for newline)"
+          placeholder="Add a note..."
           rows={1}
           aria-label="Add a comment"
+          title="Enter to post · Shift+Enter for newline"
         />
-        <div className={styles.inputRow}>
-          {isRoomMode && (
-            <button
-              type="button"
-              className={`${styles.visibilityToggle} ${visibility === 'private' ? styles.visibilityPrivate : styles.visibilityPublic}`}
-              onClick={() => setVisibility((v) => v === 'public' ? 'private' : 'public')}
-              title={visibility === 'public' ? 'Visible to everyone — click for private' : 'Private note — click for public'}
-            >
-              {visibility === 'public' ? '🌐 Public' : '🔒 Private'}
-            </button>
-          )}
+        {isRoomMode && (
           <button
             type="button"
-            className={styles.postBtn}
-            onClick={handlePost}
-            disabled={!inputText.trim()}
+            className={`${styles.visibilityToggle} ${visibility === 'private' ? styles.visibilityPrivate : styles.visibilityPublic}`}
+            onClick={() => setVisibility((v) => v === 'public' ? 'private' : 'public')}
+            title={visibility === 'public' ? 'Public — visible to everyone' : 'Private — only you see this'}
           >
-            Post
+            {visibility === 'public' ? '🌐' : '🔒'}
           </button>
-        </div>
+        )}
+        <button
+          type="button"
+          className={styles.postBtn}
+          onClick={handlePost}
+          disabled={!inputText.trim()}
+        >
+          Post
+        </button>
       </div>
     </div>
   );
