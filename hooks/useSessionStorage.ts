@@ -6,6 +6,8 @@ const STORAGE_KEYS = {
   DICE_ROLLS: 'diceRolls',
 } as const;
 
+export const MAX_STORED_ROLLS = 200;
+
 /**
  * Custom hook for managing local storage
  * @param key - Storage key
@@ -71,7 +73,11 @@ export function useDiceRollsStorage() {
           (roll) => roll.dice && roll.dice.every((die) => die.finalNumber != null)
         )
         .map(({ shouldAnimate, ...rest }) => rest);
-      setStoredRolls(completedRolls);
+      // Keep only the most recent rolls to prevent localStorage bloat
+      const pruned = completedRolls.length > MAX_STORED_ROLLS
+        ? completedRolls.slice(-MAX_STORED_ROLLS)
+        : completedRolls;
+      setStoredRolls(pruned);
     },
     [setStoredRolls]
   );

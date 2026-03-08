@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase, supabaseEnabled } from '../lib/supabase';
 import { generateSlug } from '../lib/slug';
+import { getBackoffDelay } from '../lib/backoff';
 import { useIdentity } from './useIdentity';
 import type { Roll, RoomRoll, RollVisibility } from '../dice/types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -30,6 +31,7 @@ export function useRoom() {
   const roomRef = useRef<RoomState | null>(null);
   const nicknameRef = useRef<string>('');
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptRef = useRef(0);
 
   const cleanup = useCallback(() => {
     if (reconnectTimerRef.current) {
@@ -130,14 +132,17 @@ export function useRoom() {
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           setIsConnected(true);
+          reconnectAttemptRef.current = 0;
           await channel.track({
             nickname: currentNickname,
             online_at: new Date().toISOString(),
           });
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           setIsConnected(false);
-          // Auto-reconnect after a delay
+          // Auto-reconnect with exponential backoff + jitter
           if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+          const delay = getBackoffDelay(reconnectAttemptRef.current);
+          reconnectAttemptRef.current++;
           reconnectTimerRef.current = setTimeout(() => {
             const currentRoom = roomRef.current;
             if (currentRoom && supabase) {
@@ -151,7 +156,7 @@ export function useRoom() {
                 subscribeToRoom(currentRoom, nicknameRef.current);
               });
             }
-          }, 3000);
+          }, delay);
         } else if (status === 'CLOSED') {
           setIsConnected(false);
         }

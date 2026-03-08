@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import DiceTray from '../DiceTray/DiceTray';
 import type { Roll, RoomRoll, RollComment } from '../../dice/types';
 import styles from './Ledger.module.css';
@@ -42,16 +42,16 @@ export default function Ledger({
   };
 
   // Filter out hidden rolls from other players
-  const visibleRolls = rolls.filter((roll) => {
+  const visibleRolls = useMemo(() => rolls.filter((roll) => {
     if (!isRoomMode || !isRoomRoll(roll)) return true;
     if (roll.visibility === 'hidden' && !roll.isLocal && !roll.isRevealed) return false;
     return true;
-  });
+  }), [rolls, isRoomMode]);
 
   // Fractal only on the most recent critical success (a chained explosion die)
-  const mostRecentCritId = visibleRolls.find((roll) =>
+  const mostRecentCritId = useMemo(() => visibleRolls.find((roll) =>
     roll.dice?.some((die) => die.chainDepth != null && die.chainDepth >= 2)
-  )?.id;
+  )?.id, [visibleRolls]);
 
   return (
     <div className={styles.Ledger}>

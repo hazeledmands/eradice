@@ -269,6 +269,7 @@ export default function DiceTray({
   const [fractalCenter, setFractalCenter] = useState({ x: 0.5, y: 0.5 });
 
   useLayoutEffect(() => {
+    if (!showFractal) return;
     const diceCount = roll?.diceCount ?? 0;
     if (!diceCount) return;
 
@@ -289,7 +290,7 @@ export default function DiceTray({
     if (trayRef.current) ro.observe(trayRef.current);
     measure();
     return () => ro.disconnect();
-  }, [roll?.diceCount]);
+  }, [roll?.diceCount, showFractal]);
 
   // Build tray class name
   let trayClassName = styles.DiceTray;

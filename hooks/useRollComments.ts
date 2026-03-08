@@ -5,6 +5,8 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const LOCAL_STORAGE_KEY = 'eradice-roll-comments';
 
+export const MAX_INITIAL_COMMENTS = 500;
+
 interface UseRollCommentsOptions {
   roomId?: string;
   userId?: string;
@@ -78,6 +80,7 @@ export function useRollComments({ roomId, userId, nickname }: UseRollCommentsOpt
       .select('*')
       .eq('room_id', roomId)
       .order('created_at', { ascending: true })
+      .limit(MAX_INITIAL_COMMENTS)
       .then(({ data }) => {
         if (!data) return;
         const comments: RollComment[] = data.map((row) => ({

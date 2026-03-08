@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { getParticleBudget } from "../../lib/particleBudget";
 import styles from "./NaniteBackground.module.css";
 
 // --- Inline Perlin noise (no npm dependency) ---
@@ -71,7 +72,12 @@ function noise3d(x: number, y: number, z: number): number {
 }
 
 // --- Config ---
-const PARTICLE_COUNT = 4000;
+const PARTICLE_COUNT = typeof navigator !== 'undefined'
+    ? getParticleBudget({
+        hardwareConcurrency: navigator.hardwareConcurrency,
+        deviceMemory: (navigator as { deviceMemory?: number }).deviceMemory,
+      })
+    : 4000;
 const NUM_CLUSTERS = 30;
 const CLUSTER_SPREAD = 105; // canvas px (~210 screen px)
 const NOISE_SCALE = 0.003;
