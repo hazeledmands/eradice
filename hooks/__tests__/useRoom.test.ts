@@ -54,6 +54,13 @@ jest.mock('../../lib/supabase', () => {
       channel: jest.fn().mockReturnValue(mockChannel),
       from: mockFrom,
       removeChannel: jest.fn(),
+      auth: {
+        getSession: jest.fn().mockResolvedValue({ data: { session: null } }),
+        signInAnonymously: jest.fn().mockResolvedValue({ data: { user: null }, error: null }),
+        onAuthStateChange: jest.fn().mockReturnValue({
+          data: { subscription: { unsubscribe: jest.fn() } },
+        }),
+      },
     },
     supabaseEnabled: true,
   };

@@ -70,7 +70,7 @@ describe('Roller UI Test', () => {
     const user = userEvent.setup();
     const { container } = render(<Roller />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByPlaceholderText(/3d\+2/);
     await user.type(input, '3d+2');
 
     const rollButton = screen.getByRole('button', { name: /^roll!$/i });
