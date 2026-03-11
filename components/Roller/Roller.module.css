@@ -1,4 +1,5 @@
 .Roller {
+  width: 100%;
   background:
     /* Worn patches -- coating corroded away, bare metal showing through */
     radial-gradient(ellipse at 8% 12%, rgba(130, 145, 155, 0.18) 0%, transparent 45%),
