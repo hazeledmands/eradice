@@ -1,5 +1,6 @@
 import type { Roll, Die } from './types';
 import { generateRollDuration, generateRandomFace } from './randomGenerator';
+import { withSpan } from '../lib/tracing';
 
 // Dice-related constants
 const EXPLODE_SUCCESS_VALUE = 6;
@@ -20,81 +21,98 @@ export function createRoll(
   modifier: number,
   diceCount: number
 ): Roll {
-  const allDice: Die[] = [];
-  // Get the maximum ID from initial dice to ensure unique IDs for exploding dice
-  const maxInitialId = dice.length > 0 ? Math.max(...dice.map((d) => d.id)) : -1;
-  let nextExplodingDieId = maxInitialId + 1;
+  return withSpan('dice.create_roll', {
+    'dice.notation': text,
+    'dice.count': diceCount,
+    'dice.modifier': modifier,
+  }, (span) => {
+    const allDice: Die[] = [];
+    // Get the maximum ID from initial dice to ensure unique IDs for exploding dice
+    const maxInitialId = dice.length > 0 ? Math.max(...dice.map((d) => d.id)) : -1;
+    let nextExplodingDieId = maxInitialId + 1;
 
-  // Process initial dice
-  for (const die of dice) {
-    const finalNumber = generateRandomFace();
-    const stopAfter = generateRollDuration();
-    
-    // Check for explosion failure (roll 1 on exploding die)
-    const isCancelled = die.canExplodeFail && finalNumber === EXPLODE_FAIL_VALUE;
-    
-    allDice.push({
-      ...die,
-      finalNumber,
-      stopAfter,
-      isCancelled,
-      // Mark the original exploding die with chainDepth 0
-      ...(die.canExplodeSucceed ? { chainDepth: 0 } : {}),
-    });
+    // Process initial dice
+    for (const die of dice) {
+      const finalNumber = generateRandomFace();
+      const stopAfter = generateRollDuration();
 
-    // Check for explosion success (roll 6 on exploding die)
-    if (die.canExplodeSucceed && finalNumber === EXPLODE_SUCCESS_VALUE && !isCancelled) {
-      let depth = 1;
-      while (true) {
-        const explodingFinalNumber = generateRandomFace();
-        const explodingStopAfter = generateRollDuration();
+      // Check for explosion failure (roll 1 on exploding die)
+      const isCancelled = die.canExplodeFail && finalNumber === EXPLODE_FAIL_VALUE;
 
-        allDice.push({
-            id: nextExplodingDieId++,
-            isExploding: true,
-            canExplodeSucceed: true,
-            canExplodeFail: false,
-            finalNumber: explodingFinalNumber,
-            stopAfter: explodingStopAfter,
-            chainDepth: depth,
-          });
+      allDice.push({
+        ...die,
+        finalNumber,
+        stopAfter,
+        isCancelled,
+        // Mark the original exploding die with chainDepth 0
+        ...(die.canExplodeSucceed ? { chainDepth: 0 } : {}),
+      });
 
-        // If this exploding die rolled 6, create another one
-        if (explodingFinalNumber !== EXPLODE_SUCCESS_VALUE) {
-          break;
+      // Check for explosion success (roll 6 on exploding die)
+      if (die.canExplodeSucceed && finalNumber === EXPLODE_SUCCESS_VALUE && !isCancelled) {
+        let depth = 1;
+        while (true) {
+          const explodingFinalNumber = generateRandomFace();
+          const explodingStopAfter = generateRollDuration();
+
+          allDice.push({
+              id: nextExplodingDieId++,
+              isExploding: true,
+              canExplodeSucceed: true,
+              canExplodeFail: false,
+              finalNumber: explodingFinalNumber,
+              stopAfter: explodingStopAfter,
+              chainDepth: depth,
+            });
+
+          // If this exploding die rolled 6, create another one
+          if (explodingFinalNumber !== EXPLODE_SUCCESS_VALUE) {
+            break;
+          }
+          depth++;
         }
-        depth++;
       }
     }
-  }
 
-  // Apply cancellation logic: if any exploding dice rolled 1, cancel highest non-exploding dice
-  const failureCount = allDice.filter(
-    (d) => d.canExplodeFail && d.finalNumber === EXPLODE_FAIL_VALUE
-  ).length;
+    // Apply cancellation logic: if any exploding dice rolled 1, cancel highest non-exploding dice
+    const failureCount = allDice.filter(
+      (d) => d.canExplodeFail && d.finalNumber === EXPLODE_FAIL_VALUE
+    ).length;
 
-  if (failureCount > 0) {
-    const nonExplodingDice = allDice
-      .filter((d) => !d.isExploding && !d.isCancelled)
-      .sort((a, b) => (b.finalNumber ?? 0) - (a.finalNumber ?? 0))
-      .slice(0, failureCount);
+    if (failureCount > 0) {
+      const nonExplodingDice = allDice
+        .filter((d) => !d.isExploding && !d.isCancelled)
+        .sort((a, b) => (b.finalNumber ?? 0) - (a.finalNumber ?? 0))
+        .slice(0, failureCount);
 
-    for (const dieToCancel of nonExplodingDice) {
-      const dieIndex = allDice.findIndex((d) => d.id === dieToCancel.id);
-      if (dieIndex !== -1) {
-        allDice[dieIndex] = { ...allDice[dieIndex], isCancelled: true };
+      for (const dieToCancel of nonExplodingDice) {
+        const dieIndex = allDice.findIndex((d) => d.id === dieToCancel.id);
+        if (dieIndex !== -1) {
+          allDice[dieIndex] = { ...allDice[dieIndex], isCancelled: true };
+        }
       }
     }
-  }
 
-  return {
-    id: Date.now(),
-    text,
-    dice: allDice,
-    modifier,
-    diceCount,
-    date: new Date().toISOString(),
-  };
+    const explodingDice = allDice.filter((d) => d.isExploding && !d.isCpDie);
+    const cancelledDice = allDice.filter((d) => d.isCancelled);
+    const maxChainDepth = Math.max(0, ...allDice.map((d) => d.chainDepth ?? 0));
+
+    span.setAttribute('dice.total_count', allDice.length);
+    span.setAttribute('dice.exploding_count', explodingDice.length);
+    span.setAttribute('dice.cancelled_count', cancelledDice.length);
+    span.setAttribute('dice.max_chain_depth', maxChainDepth);
+    span.setAttribute('dice.had_explosion', explodingDice.length > 0);
+    span.setAttribute('dice.had_cancellation', cancelledDice.length > 0);
+
+    return {
+      id: Date.now(),
+      text,
+      dice: allDice,
+      modifier,
+      diceCount,
+      date: new Date().toISOString(),
+    };
+  });
 }
 
 /**
@@ -106,50 +124,53 @@ export function createRoll(
  * @returns Array of CP dice with pre-calculated values
  */
 export function createCpDice(count: number, startingId: number): Die[] {
-  const cpDice: Die[] = [];
-  let nextId = startingId;
+  return withSpan('dice.create_cp_dice', { 'dice.cp_count': count }, (span) => {
+    const cpDice: Die[] = [];
+    let nextId = startingId;
 
-  for (let i = 0; i < count; i++) {
-    const finalNumber = generateRandomFace();
-    const stopAfter = generateRollDuration();
+    for (let i = 0; i < count; i++) {
+      const finalNumber = generateRandomFace();
+      const stopAfter = generateRollDuration();
 
-    cpDice.push({
-      id: nextId++,
-      isExploding: true,
-      isCpDie: true,
-      canExplodeSucceed: true,
-      canExplodeFail: false,
-      finalNumber,
-      stopAfter,
-      chainDepth: 0,
-    });
+      cpDice.push({
+        id: nextId++,
+        isExploding: true,
+        isCpDie: true,
+        canExplodeSucceed: true,
+        canExplodeFail: false,
+        finalNumber,
+        stopAfter,
+        chainDepth: 0,
+      });
 
-    // Chain-explode on 6
-    if (finalNumber === EXPLODE_SUCCESS_VALUE) {
-      let depth = 1;
-      while (true) {
-        const explodingFinalNumber = generateRandomFace();
-        const explodingStopAfter = generateRollDuration();
+      // Chain-explode on 6
+      if (finalNumber === EXPLODE_SUCCESS_VALUE) {
+        let depth = 1;
+        while (true) {
+          const explodingFinalNumber = generateRandomFace();
+          const explodingStopAfter = generateRollDuration();
 
-        cpDice.push({
-          id: nextId++,
-          isExploding: true,
-          isCpDie: true,
-          canExplodeSucceed: true,
-          canExplodeFail: false,
-          finalNumber: explodingFinalNumber,
-          stopAfter: explodingStopAfter,
-          chainDepth: depth,
-        });
+          cpDice.push({
+            id: nextId++,
+            isExploding: true,
+            isCpDie: true,
+            canExplodeSucceed: true,
+            canExplodeFail: false,
+            finalNumber: explodingFinalNumber,
+            stopAfter: explodingStopAfter,
+            chainDepth: depth,
+          });
 
-        if (explodingFinalNumber !== EXPLODE_SUCCESS_VALUE) {
-          break;
+          if (explodingFinalNumber !== EXPLODE_SUCCESS_VALUE) {
+            break;
+          }
+          depth++;
         }
-        depth++;
       }
     }
-  }
 
-  return cpDice;
+    span.setAttribute('dice.cp_total_generated', cpDice.length);
+    return cpDice;
+  });
 }
 

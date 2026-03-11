@@ -3,6 +3,7 @@ import { supabase, supabaseEnabled } from '../lib/supabase';
 import { generateSlug } from '../lib/slug';
 import { getBackoffDelay } from '../lib/backoff';
 import { useIdentity } from './useIdentity';
+import { withAsyncSpan } from '../lib/tracing';
 import type { Roll, RoomRoll, RollVisibility } from '../dice/types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -167,21 +168,25 @@ export function useRoom() {
 
   const fetchMissedRolls = useCallback(async (roomId: string) => {
     if (!supabase) return;
-    const { data: historyRows } = await supabase
-      .from('room_rolls')
-      .select('*')
-      .eq('room_id', roomId)
-      .order('created_at', { ascending: true });
+    const sb = supabase;
+    return withAsyncSpan('room.fetch_missed_rolls', { 'room.id': roomId }, async (span) => {
+      const { data: historyRows } = await sb
+        .from('room_rolls')
+        .select('*')
+        .eq('room_id', roomId)
+        .order('created_at', { ascending: true });
 
-    const history: RoomRoll[] = (historyRows ?? []).map((row) => ({
-      ...(row.roll_data as Roll),
-      nickname: row.user_nickname,
-      isLocal: !!userIdRef.current && row.user_id === userIdRef.current,
-      shouldAnimate: false,
-      visibility: (row.visibility as RollVisibility) || 'shared',
-      isRevealed: row.is_revealed || false,
-    }));
-    setRoomRolls(history);
+      const history: RoomRoll[] = (historyRows ?? []).map((row) => ({
+        ...(row.roll_data as Roll),
+        nickname: row.user_nickname,
+        isLocal: !!userIdRef.current && row.user_id === userIdRef.current,
+        shouldAnimate: false,
+        visibility: (row.visibility as RollVisibility) || 'shared',
+        isRevealed: row.is_revealed || false,
+      }));
+      span.setAttribute('room.missed_rolls_count', history.length);
+      setRoomRolls(history);
+    });
   }, []);
 
   const joinRoom = useCallback(async (slug: string) => {
@@ -190,71 +195,78 @@ export function useRoom() {
       return;
     }
 
-    const opId = ++joinOpRef.current;
-    const isStale = () => opId !== joinOpRef.current;
+    const sb = supabase;
+    return withAsyncSpan('room.join', { 'room.slug': slug }, async (span) => {
+      const opId = ++joinOpRef.current;
+      const isStale = () => opId !== joinOpRef.current;
 
-    setError(null);
-    setIsJoining(true);
-    cleanup();
+      setError(null);
+      setIsJoining(true);
+      cleanup();
 
-    try {
-      // Find or create room
-      let roomData: RoomState;
-      const { data: existing } = await supabase
-        .from('rooms')
-        .select('id, slug')
-        .eq('slug', slug)
-        .maybeSingle();
-
-      if (isStale()) return;
-
-      if (existing) {
-        roomData = existing;
-      } else {
-        const { data: created, error: createErr } = await supabase
+      try {
+        // Find or create room
+        let roomData: RoomState;
+        const { data: existing } = await sb
           .from('rooms')
-          .insert({ slug })
           .select('id, slug')
-          .single();
+          .eq('slug', slug)
+          .maybeSingle();
 
         if (isStale()) return;
 
-        if (createErr || !created) {
-          const { data: retry } = await supabase
-            .from('rooms')
-            .select('id, slug')
-            .eq('slug', slug)
-            .maybeSingle();
-          if (isStale()) return;
-          if (retry) {
-            roomData = retry;
-          } else {
-            setError('Failed to create room');
-            return;
-          }
+        if (existing) {
+          span.setAttribute('room.created', false);
+          roomData = existing;
         } else {
-          roomData = created;
+          span.setAttribute('room.created', true);
+          const { data: created, error: createErr } = await sb
+            .from('rooms')
+            .insert({ slug })
+            .select('id, slug')
+            .single();
+
+          if (isStale()) return;
+
+          if (createErr || !created) {
+            const { data: retry } = await sb
+              .from('rooms')
+              .select('id, slug')
+              .eq('slug', slug)
+              .maybeSingle();
+            if (isStale()) return;
+            if (retry) {
+              roomData = retry;
+            } else {
+              setError('Failed to create room');
+              return;
+            }
+          } else {
+            roomData = created;
+          }
+        }
+
+        span.setAttribute('room.id', roomData.id);
+        setRoom(roomData);
+        roomRef.current = roomData;
+
+        // Fetch existing rolls
+        await fetchMissedRolls(roomData.id);
+        if (isStale()) return;
+
+        // Subscribe to new rolls and presence
+        subscribeToRoom(roomData, nicknameRef.current);
+      } catch {
+        if (!isStale()) {
+          setError('Failed to join room');
+        }
+        throw new Error('Failed to join room');
+      } finally {
+        if (!isStale()) {
+          setIsJoining(false);
         }
       }
-
-      setRoom(roomData);
-      roomRef.current = roomData;
-
-      // Fetch existing rolls
-      await fetchMissedRolls(roomData.id);
-      if (isStale()) return;
-
-      // Subscribe to new rolls and presence
-      subscribeToRoom(roomData, nicknameRef.current);
-    } catch {
-      if (!isStale()) {
-        setError('Failed to join room');
-      }
-    } finally {
-      if (!isStale()) {
-        setIsJoining(false);
-      }
-    }
+    });
   }, [cleanup, fetchMissedRolls, subscribeToRoom]);
 
   const createRoom = useCallback(async (): Promise<string | null> => {
@@ -265,57 +277,78 @@ export function useRoom() {
 
   const broadcastRoll = useCallback(async (roll: Roll, nickname: string, visibility: RollVisibility = 'shared') => {
     if (!supabase || !room) return;
+    const sb = supabase;
+    const roomId = room.id;
 
-    const localRoomRoll: RoomRoll = {
-      ...roll,
-      nickname,
-      isLocal: true,
-      shouldAnimate: true,
-      visibility,
-      isRevealed: false,
-    };
-    setRoomRolls((prev) => [...prev, localRoomRoll]);
+    return withAsyncSpan('room.broadcast_roll', {
+      'room.id': roomId,
+      'roll.notation': roll.text,
+      'roll.visibility': visibility,
+      'roll.dice_count': roll.dice.length,
+    }, async () => {
+      const localRoomRoll: RoomRoll = {
+        ...roll,
+        nickname,
+        isLocal: true,
+        shouldAnimate: true,
+        visibility,
+        isRevealed: false,
+      };
+      setRoomRolls((prev) => [...prev, localRoomRoll]);
 
-    await supabase.from('room_rolls').insert({
-      room_id: room.id,
-      roll_id: roll.id,
-      user_nickname: nickname,
-      roll_data: roll,
-      visibility,
-      user_id: userIdRef.current ?? undefined,
+      await sb.from('room_rolls').insert({
+        room_id: roomId,
+        roll_id: roll.id,
+        user_nickname: nickname,
+        roll_data: roll,
+        visibility,
+        user_id: userIdRef.current ?? undefined,
+      });
     });
   }, [room]);
 
   const revealRoll = useCallback(async (rollId: number) => {
     if (!supabase || !room) return;
+    const sb = supabase;
+    const roomId = room.id;
 
-    // Optimistic local update — also clear shouldAnimate so DiceTray doesn't replay
-    setRoomRolls((prev) =>
-      prev.map((r) => (r.id === rollId ? { ...r, isRevealed: true, shouldAnimate: false } : r))
-    );
+    return withAsyncSpan('room.reveal_roll', { 'room.id': roomId, 'roll.id': rollId }, async () => {
+      // Optimistic local update — also clear shouldAnimate so DiceTray doesn't replay
+      setRoomRolls((prev) =>
+        prev.map((r) => (r.id === rollId ? { ...r, isRevealed: true, shouldAnimate: false } : r))
+      );
 
-    // Persist — triggers UPDATE realtime for other clients
-    await supabase
-      .from('room_rolls')
-      .update({ is_revealed: true })
-      .eq('room_id', room.id)
-      .eq('roll_id', rollId);
+      // Persist — triggers UPDATE realtime for other clients
+      await sb
+        .from('room_rolls')
+        .update({ is_revealed: true })
+        .eq('room_id', roomId)
+        .eq('roll_id', rollId);
+    });
   }, [room]);
 
   const broadcastCpSpend = useCallback(async (rollId: number, updatedRoll: Roll) => {
     if (!supabase || !room) return;
+    const sb = supabase;
+    const roomId = room.id;
 
-    // Optimistic local update
-    setRoomRolls((prev) =>
-      prev.map((r) => (r.id === rollId ? { ...r, dice: updatedRoll.dice, shouldAnimate: true } : r))
-    );
+    return withAsyncSpan('room.broadcast_cp_spend', {
+      'room.id': roomId,
+      'roll.id': rollId,
+      'roll.dice_count': updatedRoll.dice.length,
+    }, async () => {
+      // Optimistic local update
+      setRoomRolls((prev) =>
+        prev.map((r) => (r.id === rollId ? { ...r, dice: updatedRoll.dice, shouldAnimate: true } : r))
+      );
 
-    // Persist — triggers UPDATE realtime for other clients
-    await supabase
-      .from('room_rolls')
-      .update({ roll_data: updatedRoll })
-      .eq('room_id', room.id)
-      .eq('roll_id', rollId);
+      // Persist — triggers UPDATE realtime for other clients
+      await sb
+        .from('room_rolls')
+        .update({ roll_data: updatedRoll })
+        .eq('room_id', roomId)
+        .eq('roll_id', rollId);
+    });
   }, [room]);
 
   const leaveRoom = useCallback(() => {
