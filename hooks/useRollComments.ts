@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, supabaseEnabled } from '../lib/supabase';
+import { withAsyncSpan } from '../lib/tracing';
 import type { RollComment } from '../dice/types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -181,104 +182,120 @@ export function useRollComments({ roomId, userId, nickname }: UseRollCommentsOpt
   ) => {
     if (!text.trim()) return;
 
-    if (visibility === 'private' || !roomId) {
-      // Private or solo — localStorage only
-      const comment: RollComment = {
-        id: crypto.randomUUID(),
-        rollId,
-        text: text.trim(),
-        visibility: 'private',
-        authorNickname: roomId ? nickname : 'You',
-        authorId: userId,
-        createdAt: new Date().toISOString(),
-      };
-      setLocalComments((prev) => [...prev, comment]);
-    } else {
-      // Public + room mode — Supabase (optimistic)
-      if (!supabase) return;
-      const optimisticId = crypto.randomUUID();
-      const now = new Date().toISOString();
-      const optimistic: RollComment = {
-        id: optimisticId,
-        rollId,
-        text: text.trim(),
-        visibility: 'public',
-        authorNickname: nickname,
-        authorId: userId,
-        createdAt: now,
-      };
-      setRemoteComments((prev) => [...prev, optimistic]);
-
-      const { data, error } = await supabase
-        .from('roll_comments')
-        .insert({
-          room_id: roomId,
-          roll_id: rollId,
+    return withAsyncSpan('comment.add', {
+      'comment.visibility': visibility,
+      'comment.text_length': text.trim().length,
+      'comment.storage': (visibility === 'private' || !roomId) ? 'local' : 'remote',
+    }, async () => {
+      if (visibility === 'private' || !roomId) {
+        // Private or solo — localStorage only
+        const comment: RollComment = {
+          id: crypto.randomUUID(),
+          rollId,
           text: text.trim(),
-          author_nickname: nickname,
-          author_id: userId ?? null,
-        })
-        .select('id, created_at')
-        .single();
+          visibility: 'private',
+          authorNickname: roomId ? nickname : 'You',
+          authorId: userId,
+          createdAt: new Date().toISOString(),
+        };
+        setLocalComments((prev) => [...prev, comment]);
+      } else {
+        // Public + room mode — Supabase (optimistic)
+        if (!supabase) return;
+        const sb = supabase;
+        const optimisticId = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const optimistic: RollComment = {
+          id: optimisticId,
+          rollId,
+          text: text.trim(),
+          visibility: 'public',
+          authorNickname: nickname,
+          authorId: userId,
+          createdAt: now,
+        };
+        setRemoteComments((prev) => [...prev, optimistic]);
 
-      if (!error && data) {
-        // Replace optimistic with real id/timestamp
-        setRemoteComments((prev) =>
-          prev.map((c) =>
-            c.id === optimisticId
-              ? { ...c, id: data.id, createdAt: data.created_at }
-              : c
-          )
-        );
-      } else if (error) {
-        // Rollback optimistic
-        setRemoteComments((prev) => prev.filter((c) => c.id !== optimisticId));
+        const { data, error } = await sb
+          .from('roll_comments')
+          .insert({
+            room_id: roomId,
+            roll_id: rollId,
+            text: text.trim(),
+            author_nickname: nickname,
+            author_id: userId ?? null,
+          })
+          .select('id, created_at')
+          .single();
+
+        if (!error && data) {
+          // Replace optimistic with real id/timestamp
+          setRemoteComments((prev) =>
+            prev.map((c) =>
+              c.id === optimisticId
+                ? { ...c, id: data.id, createdAt: data.created_at }
+                : c
+            )
+          );
+        } else if (error) {
+          // Rollback optimistic
+          setRemoteComments((prev) => prev.filter((c) => c.id !== optimisticId));
+        }
       }
-    }
+    });
   }, [roomId, userId, nickname]);
 
   const editComment = useCallback(async (id: string, newText: string) => {
     if (!newText.trim()) return;
 
-    // Check if it's a local (private) comment
     const isLocal = localComments.some((c) => c.id === id);
-    if (isLocal) {
+    return withAsyncSpan('comment.edit', {
+      'comment.storage': isLocal ? 'local' : 'remote',
+      'comment.text_length': newText.trim().length,
+    }, async () => {
+      if (isLocal) {
+        const now = new Date().toISOString();
+        setLocalComments((prev) =>
+          prev.map((c) => c.id === id ? { ...c, text: newText.trim(), updatedAt: now } : c)
+        );
+        return;
+      }
+
+      // Remote public comment
+      if (!supabase || !roomId) return;
+      const sb = supabase;
       const now = new Date().toISOString();
-      setLocalComments((prev) =>
+      setRemoteComments((prev) =>
         prev.map((c) => c.id === id ? { ...c, text: newText.trim(), updatedAt: now } : c)
       );
-      return;
-    }
-
-    // Remote public comment
-    if (!supabase || !roomId) return;
-    const now = new Date().toISOString();
-    setRemoteComments((prev) =>
-      prev.map((c) => c.id === id ? { ...c, text: newText.trim(), updatedAt: now } : c)
-    );
-    await supabase
-      .from('roll_comments')
-      .update({ text: newText.trim(), updated_at: now })
-      .eq('id', id)
-      .eq('room_id', roomId);
+      await sb
+        .from('roll_comments')
+        .update({ text: newText.trim(), updated_at: now })
+        .eq('id', id)
+        .eq('room_id', roomId);
+    });
   }, [localComments, roomId]);
 
   const deleteComment = useCallback(async (id: string) => {
-    // Check if it's a local (private) comment
     const isLocal = localComments.some((c) => c.id === id);
-    if (isLocal) {
-      setLocalComments((prev) => prev.filter((c) => c.id !== id));
-      return;
-    }
+    return withAsyncSpan('comment.delete', {
+      'comment.storage': isLocal ? 'local' : 'remote',
+    }, async () => {
+      if (isLocal) {
+        setLocalComments((prev) => prev.filter((c) => c.id !== id));
+        return;
+      }
 
-    // Remote public comment
-    if (!supabase || !roomId) return;
-    setRemoteComments((prev) => prev.filter((c) => c.id !== id));
-    await supabase
-      .from('roll_comments')
-      .delete()
-      .eq('id', id)
-      .eq('room_id', roomId);
+      // Remote public comment
+      if (!supabase || !roomId) return;
+      const sb = supabase;
+      setRemoteComments((prev) => prev.filter((c) => c.id !== id));
+      await sb
+        .from('roll_comments')
+        .delete()
+        .eq('id', id)
+        .eq('room_id', roomId);
+    });
   }, [localComments, roomId]);
 
   return { commentsByRoll, addComment, editComment, deleteComment };

@@ -14,6 +14,7 @@ import { supabaseEnabled } from '../../lib/supabase';
 import { generateSlug } from '../../lib/slug';
 import { useTypewriter } from '../../hooks/useTypewriter';
 import { selectPrompt } from './terminalPrompts';
+import { withSpan } from '../../lib/tracing';
 import type { Roll, Die, RollVisibility } from '../../dice/types';
 import styles from './Roller.module.css';
 
@@ -150,56 +151,75 @@ export default function Roller({ roomSlug, onRoomCreated, onRoomLeft }: RollerPr
     e.preventDefault();
     if (text.length === 0 || dice.length === 0) return;
 
-    const newRoll = createRoll(text, dice, modifier, diceCount);
-    newRoll.shouldAnimate = true;
+    withSpan('roller.submit', {
+      'roller.notation': text,
+      'roller.dice_count': diceCount,
+      'roller.modifier': modifier,
+      'roller.mode': isRoomMode ? 'room' : 'solo',
+      'roller.visibility': rollVisibility,
+    }, () => {
+      const newRoll = createRoll(text, dice, modifier, diceCount);
+      newRoll.shouldAnimate = true;
 
-    if (isRoomMode) {
-      broadcastRoll(newRoll, nickname, rollVisibility);
-    } else {
-      setRolls((prevRolls) => [newRoll, ...prevRolls]);
-    }
-    setText('');
-    setDice([]);
-    setModifier(0);
-    setDiceCount(0);
+      if (isRoomMode) {
+        broadcastRoll(newRoll, nickname, rollVisibility);
+      } else {
+        setRolls((prevRolls) => [newRoll, ...prevRolls]);
+      }
+      setText('');
+      setDice([]);
+      setModifier(0);
+      setDiceCount(0);
 
-    // Delay the new prompt until after dice animations finish
-    const maxStopAfter = Math.max(0, ...newRoll.dice.map((d) => d.stopAfter ?? 0));
-    if (promptTimerRef.current) clearTimeout(promptTimerRef.current);
-    promptTimerRef.current = setTimeout(() => {
-      setCurrentPrompt((prev) => selectPrompt(prev));
-    }, maxStopAfter + 600);
+      // Delay the new prompt until after dice animations finish
+      const maxStopAfter = Math.max(0, ...newRoll.dice.map((d) => d.stopAfter ?? 0));
+      if (promptTimerRef.current) clearTimeout(promptTimerRef.current);
+      promptTimerRef.current = setTimeout(() => {
+        setCurrentPrompt((prev) => selectPrompt(prev));
+      }, maxStopAfter + 600);
+    });
   };
 
   const handleReroll = useCallback((originalRoll: Roll) => {
-    const newDice = createDiceArray(originalRoll.diceCount);
-    const newRoll = createRoll(originalRoll.text, newDice, originalRoll.modifier, originalRoll.diceCount);
-    newRoll.shouldAnimate = true;
+    withSpan('roller.reroll', {
+      'roller.notation': originalRoll.text,
+      'roller.dice_count': originalRoll.diceCount,
+      'roller.mode': isRoomMode ? 'room' : 'solo',
+    }, () => {
+      const newDice = createDiceArray(originalRoll.diceCount);
+      const newRoll = createRoll(originalRoll.text, newDice, originalRoll.modifier, originalRoll.diceCount);
+      newRoll.shouldAnimate = true;
 
-    if (isRoomMode) {
-      broadcastRoll(newRoll, nickname, rollVisibility);
-    } else {
-      setRolls((prevRolls) => [newRoll, ...prevRolls]);
-    }
+      if (isRoomMode) {
+        broadcastRoll(newRoll, nickname, rollVisibility);
+      } else {
+        setRolls((prevRolls) => [newRoll, ...prevRolls]);
+      }
+    });
   }, [isRoomMode, broadcastRoll, nickname, rollVisibility]);
 
   const handleSpendCp = useCallback((rollId: number, count: number) => {
-    // Find the roll to spend CP on
-    const sourceRolls = isRoomMode ? roomRolls : rolls;
-    const targetRoll = sourceRolls.find((r) => r.id === rollId);
-    if (!targetRoll) return;
+    withSpan('roller.spend_cp', {
+      'roller.cp_count': count,
+      'roller.mode': isRoomMode ? 'room' : 'solo',
+    }, () => {
+      // Find the roll to spend CP on
+      const sourceRolls = isRoomMode ? roomRolls : rolls;
+      const targetRoll = sourceRolls.find((r) => r.id === rollId);
+      if (!targetRoll) return;
 
-    const maxId = Math.max(...targetRoll.dice.map((d) => d.id));
-    const cpDice = createCpDice(count, maxId + 1);
-    const updatedRoll = { ...targetRoll, dice: [...targetRoll.dice, ...cpDice], shouldAnimate: true };
+      const maxId = Math.max(...targetRoll.dice.map((d) => d.id));
+      const cpDice = createCpDice(count, maxId + 1);
+      const updatedRoll = { ...targetRoll, dice: [...targetRoll.dice, ...cpDice], shouldAnimate: true };
 
-    if (isRoomMode) {
-      broadcastCpSpend(rollId, updatedRoll);
-    } else {
-      setRolls((prevRolls) =>
-        prevRolls.map((r) => (r.id === rollId ? updatedRoll : r))
-      );
-    }
+      if (isRoomMode) {
+        broadcastCpSpend(rollId, updatedRoll);
+      } else {
+        setRolls((prevRolls) =>
+          prevRolls.map((r) => (r.id === rollId ? updatedRoll : r))
+        );
+      }
+    });
   }, [isRoomMode, roomRolls, rolls, broadcastCpSpend]);
 
   const handleCreateRoom = () => {
