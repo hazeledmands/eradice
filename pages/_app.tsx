@@ -27,7 +27,7 @@ const shareTechMono = Share_Tech_Mono({
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <div className={`${rajdhani.variable} ${orbitron.variable} ${shareTechMono.variable}`}>
+    <div className={`${rajdhani.variable} ${orbitron.variable} ${shareTechMono.variable}`} style={{ display: 'contents' }}>
       <NaniteBackground />
       <Component {...pageProps} />
     </div>
