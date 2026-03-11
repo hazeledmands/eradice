@@ -36,7 +36,7 @@
 }
 
 .nickname {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 0.8rem;
   font-weight: 600;
   color: rgba(0, 255, 170, 0.7);
@@ -46,7 +46,7 @@
 }
 
 .text {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 0.95rem;
   font-weight: 600;
   color: rgba(0, 255, 255, 0.85);
@@ -57,7 +57,7 @@
 }
 
 .date {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 0.75rem;
   font-weight: 400;
   color: rgba(0, 255, 255, 0.4);
@@ -68,7 +68,7 @@
 .secretBadge,
 .hiddenBadge,
 .revealedBadge {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 0.6rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -105,7 +105,7 @@
 }
 
 .secretPlaceholder {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 0.9rem;
   font-weight: 600;
   font-style: italic;
@@ -115,7 +115,7 @@
 }
 
 .revealButton {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 0.8rem;
   font-weight: 700;
   text-transform: uppercase;

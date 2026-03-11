@@ -3,3 +3,55 @@
   max-width: 800px;
 }
 
+/* Skeleton placeholder — matches Roller dimensions to prevent CLS */
+.skeleton {
+  background: rgba(5, 10, 20, 0.85);
+  border-radius: 2px;
+  padding: 2.5rem;
+  border: 1px solid rgba(0, 255, 255, 0.25);
+  box-shadow:
+    0 0 20px rgba(0, 255, 255, 0.1),
+    inset 0 0 20px rgba(0, 255, 255, 0.02),
+    0 12px 40px rgba(0, 0, 0, 0.6);
+  width: 100%;
+}
+
+.skeletonTerminal {
+  border: 1px solid rgba(0, 255, 255, 0.12);
+  border-radius: 2px;
+  background: rgba(0, 3, 8, 0.95);
+  overflow: hidden;
+}
+
+.skeletonLabel {
+  height: 1rem;
+  width: 60%;
+  margin: 0.875rem 1.25rem 0.75rem;
+  background: rgba(0, 255, 255, 0.06);
+  border-radius: 2px;
+}
+
+.skeletonInputRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-top: 1px solid rgba(0, 255, 255, 0.08);
+  padding: 0.875rem 1.25rem;
+}
+
+.skeletonInput {
+  flex: 1;
+  height: 3.25rem;
+  border: 1px solid rgba(0, 255, 255, 0.25);
+  border-radius: 6px;
+  background: rgba(0, 10, 20, 0.9);
+}
+
+.skeletonButton {
+  height: 3.25rem;
+  width: 6rem;
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  border-radius: 6px;
+  background: rgba(0, 30, 50, 0.8);
+}
+

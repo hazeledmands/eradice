@@ -25,11 +25,21 @@ const Home: NextPage = () => {
     window.history.pushState(null, '', window.location.pathname);
   };
 
-  if (!ready) return null;
-
   return (
     <div className={styles.App}>
-      <Roller roomSlug={roomSlug} onRoomCreated={handleRoomCreated} onRoomLeft={handleRoomLeft} />
+      {ready ? (
+        <Roller roomSlug={roomSlug} onRoomCreated={handleRoomCreated} onRoomLeft={handleRoomLeft} />
+      ) : (
+        <div className={styles.skeleton}>
+          <div className={styles.skeletonTerminal}>
+            <div className={styles.skeletonLabel} />
+            <div className={styles.skeletonInputRow}>
+              <div className={styles.skeletonInput} />
+              <div className={styles.skeletonButton} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
