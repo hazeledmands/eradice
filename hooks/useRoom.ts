@@ -256,11 +256,11 @@ export function useRoom() {
 
         // Subscribe to new rolls and presence
         subscribeToRoom(roomData, nicknameRef.current);
-      } catch {
+      } catch (err) {
         if (!isStale()) {
           setError('Failed to join room');
         }
-        throw new Error('Failed to join room');
+        span.recordException(err as Error);
       } finally {
         if (!isStale()) {
           setIsJoining(false);
