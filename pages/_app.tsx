@@ -1,5 +1,6 @@
 import type { AppProps } from 'next/app';
 import { Rajdhani, Orbitron, Share_Tech_Mono } from 'next/font/google';
+import '../instrumentation';
 import '../styles/globals.css';
 import NaniteBackground from '../components/NaniteBackground/NaniteBackground';
 

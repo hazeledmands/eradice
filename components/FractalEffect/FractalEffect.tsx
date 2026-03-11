@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { getTracer } from '../../lib/tracing';
 import styles from './FractalEffect.module.css';
 
 const VERT_SRC = `
@@ -142,6 +143,15 @@ export default function FractalEffect({ opacity = 1, center = { x: 0.5, y: 0.5 }
     const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: true });
     if (!gl) return;
 
+    const algNames = ['julia_z2', 'burning_ship', 'julia_z3', 'phoenix'];
+    const initSpan = getTracer().startSpan('perf.fractal_init');
+    initSpan.setAttributes({
+      'fractal.algorithm': algNames[algIndex.current] ?? 'unknown',
+      'fractal.algorithm_index': algIndex.current,
+      'fractal.canvas_width': canvas.clientWidth,
+      'fractal.canvas_height': canvas.clientHeight,
+    });
+
     function compileShader(type: number, src: string): WebGLShader | null {
       const shader = gl!.createShader(type);
       if (!shader) return null;
@@ -202,6 +212,8 @@ export default function FractalEffect({ opacity = 1, center = { x: 0.5, y: 0.5 }
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
     resize();
+
+    initSpan.end();
 
     const startTime = performance.now();
     let raf = 0;
