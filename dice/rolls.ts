@@ -104,6 +104,18 @@ export function createRoll(
     span.setAttribute('dice.had_explosion', explodingDice.length > 0);
     span.setAttribute('dice.had_cancellation', cancelledDice.length > 0);
 
+    const activeDice = allDice.filter((d) => !d.isCancelled && d.finalNumber != null);
+    const faces = allDice.map((d) => {
+      const val = String(d.finalNumber ?? '?');
+      if (d.isCancelled) return `${val}x`;
+      if (d.isCpDie) return `${val}cp`;
+      return val;
+    }).join(',');
+    const total = activeDice.reduce((sum, d) => sum + (d.finalNumber ?? 0), 0) + modifier;
+
+    span.setAttribute('dice.faces', faces);
+    span.setAttribute('dice.result', total);
+
     return {
       id: Date.now(),
       text,
