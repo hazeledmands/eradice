@@ -232,28 +232,32 @@ export default function Roller({ roomSlug, onRoomCreated, onRoomLeft }: RollerPr
 
   return (
     <div className={styles.Roller}>
-      {isRoomMode && room && (
-        <RoomBar
-          slug={room.slug}
-          nickname={nickname}
-          isConnected={isConnected}
-          isReconnecting={isReconnecting}
-          presenceUsers={presenceUsers}
-          onNicknameChange={handleNicknameChange}
-          onLeave={handleLeaveRoom}
-        />
-      )}
+      {(isRoomMode || isJoining || roomError) && (
+        <div className={styles.roomStatusArea}>
+          {isRoomMode && room && (
+            <RoomBar
+              slug={room.slug}
+              nickname={nickname}
+              isConnected={isConnected}
+              isReconnecting={isReconnecting}
+              presenceUsers={presenceUsers}
+              onNicknameChange={handleNicknameChange}
+              onLeave={handleLeaveRoom}
+            />
+          )}
 
-      {isJoining && (
-        <div className={styles.roomJoining}>Joining room...</div>
-      )}
+          {isJoining && (
+            <div className={styles.roomJoining}>Joining room...</div>
+          )}
 
-      {roomError && (
-        <div className={styles.roomError}>
-          {roomError}
-          <button className={styles.retryButton} onClick={handleRetry}>
-            Retry
-          </button>
+          {roomError && (
+            <div className={styles.roomError}>
+              {roomError}
+              <button className={styles.retryButton} onClick={handleRetry}>
+                Retry
+              </button>
+            </div>
+          )}
         </div>
       )}
 

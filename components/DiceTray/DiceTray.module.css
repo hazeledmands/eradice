@@ -266,10 +266,15 @@
   align-items: center;
   margin-top: 0.75rem;
   gap: 1rem;
+  visibility: hidden;
+}
+
+.bottomRow.bottomRowVisible {
+  visibility: visible;
 }
 
 .Math {
-  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-family: var(--font-share-tech-mono), 'Courier New', monospace;
   color: #00ffaa;
   display: block;
   font-size: 1.4rem;
@@ -280,7 +285,7 @@
 }
 
 .copyButton {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
   min-height: 44px;
@@ -314,7 +319,7 @@
 }
 
 .rerollButton {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
   min-height: 44px;
@@ -341,7 +346,7 @@
 }
 
 .cpButton {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
   min-height: 44px;
@@ -374,7 +379,7 @@
 }
 
 .cpPickerButton {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
   min-height: 44px;
@@ -397,7 +402,7 @@
 }
 
 .cpCancelButton {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 1rem;
   font-weight: 600;
   min-height: 44px;
@@ -418,7 +423,7 @@
 
 
 .criticalLabel {
-  font-family: 'Orbitron', sans-serif;
+  font-family: var(--font-orbitron), sans-serif;
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -434,6 +439,11 @@
   -webkit-text-fill-color: transparent;
   text-shadow: none;
   filter: drop-shadow(0 0 6px rgba(0, 255, 255, 0.4)) drop-shadow(0 0 12px rgba(160, 80, 255, 0.2));
+  visibility: hidden;
+}
+
+.critSuccess.critVisible {
+  visibility: visible;
   animation: critSuccessReveal 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -444,6 +454,11 @@
     -1px 0 rgba(0, 255, 255, 0.4),
     1px 0 rgba(255, 0, 100, 0.4),
     0 0 8px rgba(255, 40, 40, 0.5);
+  visibility: hidden;
+}
+
+.critFail.critVisible {
+  visibility: visible;
   animation: critFailReveal 400ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
 }
 

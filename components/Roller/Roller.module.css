@@ -56,7 +56,7 @@
 }
 
 .terminalLabel {
-  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-family: var(--font-share-tech-mono), 'Courier New', monospace;
   font-size: 1rem;
   font-weight: 400;
   color: rgba(0, 255, 255, 0.7);
@@ -104,7 +104,7 @@
     inset 0 0 8px rgba(0, 0, 0, 0.4);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   position: relative;
-  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-family: var(--font-share-tech-mono), 'Courier New', monospace;
   flex: 1;
 }
 
@@ -127,7 +127,7 @@
 }
 
 .terminalInputField {
-  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-family: var(--font-share-tech-mono), 'Courier New', monospace;
   font-size: 1rem;
   background: transparent;
   border: none;
@@ -162,7 +162,7 @@
 }
 
 .Roller :global(button[type="submit"]) {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 1rem;
   font-weight: 700;
   padding: 0.875rem 2rem;
@@ -202,7 +202,7 @@
 }
 
 .createRoomButton {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
   padding: 0.5rem 1.25rem;
@@ -222,9 +222,14 @@
   box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
 }
 
+.roomStatusArea {
+  min-height: 3rem;
+  contain: layout;
+}
+
 .roomJoining {
   color: rgba(0, 255, 255, 0.8);
-  font-family: 'Share Tech Mono', monospace;
+  font-family: var(--font-share-tech-mono), monospace;
   font-size: 0.85rem;
   padding: 0.5rem;
   margin-bottom: 0.5rem;
@@ -244,7 +249,7 @@
   align-items: center;
   gap: 0.75rem;
   color: #cc4444;
-  font-family: 'Share Tech Mono', monospace;
+  font-family: var(--font-share-tech-mono), monospace;
   font-size: 0.85rem;
   padding: 0.5rem;
   margin-bottom: 0.5rem;
@@ -254,7 +259,7 @@
 }
 
 .retryButton {
-  font-family: 'Share Tech Mono', monospace;
+  font-family: var(--font-share-tech-mono), monospace;
   font-size: 0.8rem;
   padding: 0.2rem 0.6rem;
   background: rgba(200, 60, 60, 0.1);

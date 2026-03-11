@@ -332,66 +332,64 @@ export default function DiceTray({
           );
         })}
       </div>
-      {hasCritSuccess && isComplete && (
-        <div className={styles.critSuccess}>Critical Success</div>
+      {hasCritSuccess && (
+        <div className={`${styles.critSuccess}${isComplete ? ` ${styles.critVisible}` : ''}`}>Critical Success</div>
       )}
-      {hasCritFail && (cancellationRevealed || (isComplete && !shouldAnimate)) && (
-        <div className={styles.critFail}>Critical Failure</div>
+      {hasCritFail && (
+        <div className={`${styles.critFail}${(cancellationRevealed || (isComplete && !shouldAnimate)) ? ` ${styles.critVisible}` : ''}`}>Critical Failure</div>
       )}
-      <div className={styles.bottomRow}>
-        {isComplete && (<React.Fragment>
-          {mathContent && <div className={styles.Math}>{mathContent}</div>}
-          <div className={styles.actionButtons}>
+      <div className={`${styles.bottomRow}${isComplete ? ` ${styles.bottomRowVisible}` : ''}`}>
+        {mathContent && <div className={styles.Math}>{mathContent}</div>}
+        <div className={styles.actionButtons}>
+          <button
+            className={styles.copyButton}
+            onClick={handleCopy}
+            title="Copy to clipboard"
+          >
+            Copy
+          </button>
+          {onReroll && roll && (
             <button
-              className={styles.copyButton}
-              onClick={handleCopy}
-              title="Copy to clipboard"
+              className={styles.rerollButton}
+              onClick={() => onReroll(roll)}
+              title="Reroll with same dice"
             >
-              Copy
+              Reroll
             </button>
-            {onReroll && roll && (
-              <button
-                className={styles.rerollButton}
-                onClick={() => onReroll(roll)}
-                title="Reroll with same dice"
-              >
-                Reroll
-              </button>
-            )}
-            {canSpendCp && onSpendCp && roll && (
-              showCpPicker ? (
-                <div className={styles.cpPicker}>
-                  <button
-                    className={styles.cpPickerButton}
-                    onClick={() => handleCpSpend(1)}
-                  >
-                    1 CP
-                  </button>
-                  <button
-                    className={styles.cpPickerButton}
-                    onClick={() => handleCpSpend(2)}
-                  >
-                    2 CP
-                  </button>
-                  <button
-                    className={styles.cpCancelButton}
-                    onClick={() => setShowCpPicker(false)}
-                  >
-                    &times;
-                  </button>
-                </div>
-              ) : (
+          )}
+          {canSpendCp && onSpendCp && roll && (
+            showCpPicker ? (
+              <div className={styles.cpPicker}>
                 <button
-                  className={styles.cpButton}
-                  onClick={() => setShowCpPicker(true)}
-                  title="Spend Character Points"
+                  className={styles.cpPickerButton}
+                  onClick={() => handleCpSpend(1)}
                 >
-                  Spend CP
+                  1 CP
                 </button>
-              )
-            )}
-          </div>
-        </React.Fragment>)}
+                <button
+                  className={styles.cpPickerButton}
+                  onClick={() => handleCpSpend(2)}
+                >
+                  2 CP
+                </button>
+                <button
+                  className={styles.cpCancelButton}
+                  onClick={() => setShowCpPicker(false)}
+                >
+                  &times;
+                </button>
+              </div>
+            ) : (
+              <button
+                className={styles.cpButton}
+                onClick={() => setShowCpPicker(true)}
+                title="Spend Character Points"
+              >
+                Spend CP
+              </button>
+            )
+          )}
+        </div>
       </div>
       {roll && onAddComment && onEditComment && onDeleteComment && (
         <CommentThread
