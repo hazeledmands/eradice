@@ -12,6 +12,11 @@ if (typeof window !== 'undefined') {
           });
 
           sdk.start();
+
+          // Start perf observers after OTel SDK is initialized
+          import('./lib/perfInstrumentation').then(({ initPerfInstrumentation }) => {
+            initPerfInstrumentation();
+          });
         },
       ),
     );
