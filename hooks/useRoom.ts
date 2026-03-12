@@ -7,6 +7,8 @@ import { withAsyncSpan } from '../lib/tracing';
 import type { Roll, RoomRoll, RollVisibility } from '../dice/types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
+const ROOM_ROLLS_PAGE_SIZE = 10;
+
 interface RoomState {
   id: string;
   slug: string;
@@ -27,12 +29,15 @@ export function useRoom() {
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [presenceUsers, setPresenceUsers] = useState<PresenceUser[]>([]);
+  const [hasOlderRolls, setHasOlderRolls] = useState(false);
+  const [isLoadingOlderRolls, setIsLoadingOlderRolls] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const joinOpRef = useRef(0);
   const roomRef = useRef<RoomState | null>(null);
   const nicknameRef = useRef<string>('');
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptRef = useRef(0);
+  const oldestLoadedCreatedAtRef = useRef<string | null>(null);
 
   const cleanup = useCallback(() => {
     if (reconnectTimerRef.current) {
@@ -46,6 +51,84 @@ export function useRoom() {
     setIsConnected(false);
     setPresenceUsers([]);
   }, []);
+
+  const mapRoomRows = useCallback((rows: Array<{
+    roll_data: Roll;
+    user_nickname: string;
+    visibility?: string;
+    is_revealed?: boolean;
+    user_id?: string;
+  }>): RoomRoll[] => rows.map((row) => ({
+    ...(row.roll_data as Roll),
+    nickname: row.user_nickname,
+    isLocal: !!userIdRef.current && row.user_id === userIdRef.current,
+    shouldAnimate: false,
+    visibility: (row.visibility as RollVisibility) || 'shared',
+    isRevealed: row.is_revealed || false,
+  })), []);
+
+  const fetchRecentRolls = useCallback(async (roomId: string) => {
+    if (!supabase) return;
+    const sb = supabase;
+    return withAsyncSpan('room.fetch_recent_rolls', { 'room.id': roomId }, async (span) => {
+      const { data: historyRows } = await sb
+        .from('room_rolls')
+        .select('*')
+        .eq('room_id', roomId)
+        .order('created_at', { ascending: false })
+        .limit(ROOM_ROLLS_PAGE_SIZE);
+
+      const rows = historyRows ?? [];
+      const oldestRow = rows[rows.length - 1];
+      oldestLoadedCreatedAtRef.current = oldestRow?.created_at ?? null;
+
+      const history = mapRoomRows(rows).reverse();
+      span.setAttribute('room.recent_rolls_count', history.length);
+      span.setAttribute('room.page_size', ROOM_ROLLS_PAGE_SIZE);
+      setRoomRolls(history);
+      setHasOlderRolls(rows.length === ROOM_ROLLS_PAGE_SIZE);
+    });
+  }, [mapRoomRows]);
+
+  const loadOlderRolls = useCallback(async () => {
+    if (!supabase || !roomRef.current || !oldestLoadedCreatedAtRef.current || isLoadingOlderRolls || !hasOlderRolls) {
+      return;
+    }
+
+    setIsLoadingOlderRolls(true);
+    const sb = supabase;
+    const roomId = roomRef.current.id;
+
+    try {
+      const { data: olderRows } = await sb
+        .from('room_rolls')
+        .select('*')
+        .eq('room_id', roomId)
+        .lt('created_at', oldestLoadedCreatedAtRef.current)
+        .order('created_at', { ascending: false })
+        .limit(ROOM_ROLLS_PAGE_SIZE);
+
+      const rows = olderRows ?? [];
+      if (rows.length === 0) {
+        setHasOlderRolls(false);
+        return;
+      }
+
+      oldestLoadedCreatedAtRef.current = rows[rows.length - 1]?.created_at ?? oldestLoadedCreatedAtRef.current;
+      const history = mapRoomRows(rows).reverse();
+      setRoomRolls((prev) => {
+        const existing = new Set(prev.map((r) => r.id));
+        const dedupedHistory = history.filter((r) => !existing.has(r.id));
+        return [...dedupedHistory, ...prev];
+      });
+
+      if (rows.length < ROOM_ROLLS_PAGE_SIZE) {
+        setHasOlderRolls(false);
+      }
+    } finally {
+      setIsLoadingOlderRolls(false);
+    }
+  }, [hasOlderRolls, isLoadingOlderRolls, mapRoomRows]);
 
   const subscribeToRoom = useCallback((roomData: RoomState, currentNickname: string) => {
     if (!supabase) return;
@@ -152,8 +235,8 @@ export function useRoom() {
                 supabase.removeChannel(channelRef.current);
                 channelRef.current = null;
               }
-              // Fetch any missed rolls then re-subscribe
-              fetchMissedRolls(currentRoom.id).then(() => {
+              // Refresh recent rolls then re-subscribe
+              fetchRecentRolls(currentRoom.id).then(() => {
                 subscribeToRoom(currentRoom, nicknameRef.current);
               });
             }
@@ -164,30 +247,7 @@ export function useRoom() {
       });
 
     channelRef.current = channel;
-  }, [cleanup]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const fetchMissedRolls = useCallback(async (roomId: string) => {
-    if (!supabase) return;
-    const sb = supabase;
-    return withAsyncSpan('room.fetch_missed_rolls', { 'room.id': roomId }, async (span) => {
-      const { data: historyRows } = await sb
-        .from('room_rolls')
-        .select('*')
-        .eq('room_id', roomId)
-        .order('created_at', { ascending: true });
-
-      const history: RoomRoll[] = (historyRows ?? []).map((row) => ({
-        ...(row.roll_data as Roll),
-        nickname: row.user_nickname,
-        isLocal: !!userIdRef.current && row.user_id === userIdRef.current,
-        shouldAnimate: false,
-        visibility: (row.visibility as RollVisibility) || 'shared',
-        isRevealed: row.is_revealed || false,
-      }));
-      span.setAttribute('room.missed_rolls_count', history.length);
-      setRoomRolls(history);
-    });
-  }, []);
+  }, [fetchRecentRolls]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const joinRoom = useCallback(async (slug: string) => {
     if (!supabase || !supabaseEnabled) {
@@ -251,7 +311,7 @@ export function useRoom() {
         roomRef.current = roomData;
 
         // Fetch existing rolls
-        await fetchMissedRolls(roomData.id);
+        await fetchRecentRolls(roomData.id);
         if (isStale()) return;
 
         // Subscribe to new rolls and presence
@@ -267,7 +327,7 @@ export function useRoom() {
         }
       }
     });
-  }, [cleanup, fetchMissedRolls, subscribeToRoom]);
+  }, [cleanup, fetchRecentRolls, subscribeToRoom]);
 
   const createRoom = useCallback(async (): Promise<string | null> => {
     const slug = generateSlug();
@@ -355,7 +415,10 @@ export function useRoom() {
     cleanup();
     setRoom(null);
     roomRef.current = null;
+    oldestLoadedCreatedAtRef.current = null;
     setRoomRolls([]);
+    setHasOlderRolls(false);
+    setIsLoadingOlderRolls(false);
     setError(null);
     setIsJoining(false);
   }, [cleanup]);
@@ -388,6 +451,9 @@ export function useRoom() {
     broadcastRoll,
     revealRoll,
     broadcastCpSpend,
+    hasOlderRolls,
+    isLoadingOlderRolls,
+    loadOlderRolls,
     leaveRoom,
     updatePresenceNickname,
   };

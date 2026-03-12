@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import DiceTray from '../DiceTray/DiceTray';
 import type { Roll, RoomRoll, RollComment } from '../../dice/types';
 import styles from './Ledger.module.css';
@@ -15,6 +15,9 @@ interface LedgerProps {
   onDeleteComment?: (id: string) => void;
   currentUserId?: string;
   currentNickname?: string;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 function isRoomRoll(roll: Roll): roll is RoomRoll {
@@ -28,8 +31,30 @@ function isRoomRoll(roll: Roll): roll is RoomRoll {
 export default function Ledger({
   rolls, isRoomMode, onRevealRoll, onReroll, onSpendCp,
   commentsByRoll, onAddComment, onEditComment, onDeleteComment,
-  currentUserId, currentNickname,
+  currentUserId, currentNickname, hasMore = false, isLoadingMore = false, onLoadMore,
 }: LedgerProps) {
+  const loadTriggerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!onLoadMore || !hasMore || !loadTriggerRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (!entry?.isIntersecting || isLoadingMore) return;
+        onLoadMore();
+      },
+      {
+        root: null,
+        rootMargin: '600px 0px',
+        threshold: 0.1,
+      }
+    );
+
+    observer.observe(loadTriggerRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, onLoadMore]);
+
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     return date.toLocaleString(undefined, {
@@ -136,6 +161,16 @@ export default function Ledger({
           );
         })}
       </ul>
+
+      {isRoomMode && (
+        <>
+          <div ref={loadTriggerRef} className={styles.loadTrigger} aria-hidden="true" />
+          {isLoadingMore && <div className={styles.loadStatus}>Loading older rolls…</div>}
+          {!hasMore && visibleRolls.length > 0 && (
+            <div className={styles.loadStatus}>Beginning of roll history.</div>
+          )}
+        </>
+      )}
     </div>
   );
 }
