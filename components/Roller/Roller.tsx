@@ -52,6 +52,13 @@ export default function Roller({ roomSlug, onRoomCreated, onRoomLeft }: RollerPr
     broadcastRoll,
     revealRoll,
     broadcastCpSpend,
+    hasOlderRolls,
+    hasNewerRolls,
+    isLoadingOlderRolls,
+    isLoadingNewerRolls,
+    loadOlderRolls,
+    loadNewerRolls,
+    snapToRecentRolls,
     leaveRoom,
     updatePresenceNickname,
   } = useRoom();
@@ -337,6 +344,13 @@ export default function Roller({ roomSlug, onRoomCreated, onRoomLeft }: RollerPr
         onDeleteComment={deleteComment}
         currentUserId={userId ?? undefined}
         currentNickname={nickname}
+        hasMore={isRoomMode ? hasOlderRolls : false}
+        hasNewer={isRoomMode ? hasNewerRolls : false}
+        isLoadingMore={isRoomMode ? isLoadingOlderRolls : false}
+        isLoadingNewer={isRoomMode ? isLoadingNewerRolls : false}
+        onLoadMore={isRoomMode ? loadOlderRolls : undefined}
+        onLoadNewer={isRoomMode ? loadNewerRolls : undefined}
+        onSnapToRecent={isRoomMode ? snapToRecentRolls : undefined}
       />
     </div>
   );
