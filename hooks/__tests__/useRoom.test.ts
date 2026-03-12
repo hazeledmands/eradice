@@ -45,6 +45,11 @@ jest.mock('../../lib/supabase', () => {
               limit: jest.fn().mockResolvedValue({ data: [] }),
             }),
           }),
+          gt: jest.fn().mockReturnValue({
+            order: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue({ data: [] }),
+            }),
+          }),
         }),
       }),
       insert: jest.fn().mockResolvedValue({ data: null, error: null }),

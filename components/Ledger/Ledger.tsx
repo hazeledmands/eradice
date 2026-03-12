@@ -16,27 +16,31 @@ interface LedgerProps {
   currentUserId?: string;
   currentNickname?: string;
   hasMore?: boolean;
+  hasNewer?: boolean;
   isLoadingMore?: boolean;
+  isLoadingNewer?: boolean;
   onLoadMore?: () => void;
+  onLoadNewer?: () => void;
+  onSnapToRecent?: () => void;
 }
 
 function isRoomRoll(roll: Roll): roll is RoomRoll {
   return 'nickname' in roll;
 }
 
-/**
- * Component that displays the history of all rolls
- * Simply renders a list of DiceTray components, each managing its own state timing logic
- */
 export default function Ledger({
   rolls, isRoomMode, onRevealRoll, onReroll, onSpendCp,
   commentsByRoll, onAddComment, onEditComment, onDeleteComment,
-  currentUserId, currentNickname, hasMore = false, isLoadingMore = false, onLoadMore,
+  currentUserId, currentNickname,
+  hasMore = false, hasNewer = false,
+  isLoadingMore = false, isLoadingNewer = false,
+  onLoadMore, onLoadNewer, onSnapToRecent,
 }: LedgerProps) {
-  const loadTriggerRef = useRef<HTMLDivElement | null>(null);
+  const topTriggerRef = useRef<HTMLDivElement | null>(null);
+  const bottomTriggerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!onLoadMore || !hasMore || !loadTriggerRef.current) return;
+    if (!onLoadMore || !hasMore || !bottomTriggerRef.current) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -51,9 +55,36 @@ export default function Ledger({
       }
     );
 
-    observer.observe(loadTriggerRef.current);
+    observer.observe(bottomTriggerRef.current);
     return () => observer.disconnect();
   }, [hasMore, isLoadingMore, onLoadMore]);
+
+  useEffect(() => {
+    if (!topTriggerRef.current || (!hasNewer && !onSnapToRecent)) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (!entry?.isIntersecting || isLoadingNewer) return;
+
+        if (hasNewer && onLoadNewer) {
+          onLoadNewer();
+          return;
+        }
+        if (onSnapToRecent) {
+          onSnapToRecent();
+        }
+      },
+      {
+        root: null,
+        rootMargin: '200px 0px',
+        threshold: 0.1,
+      }
+    );
+
+    observer.observe(topTriggerRef.current);
+    return () => observer.disconnect();
+  }, [hasNewer, isLoadingNewer, onLoadNewer, onSnapToRecent]);
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -66,20 +97,20 @@ export default function Ledger({
     });
   };
 
-  // Filter out hidden rolls from other players
   const visibleRolls = useMemo(() => rolls.filter((roll) => {
     if (!isRoomMode || !isRoomRoll(roll)) return true;
     if (roll.visibility === 'hidden' && !roll.isLocal && !roll.isRevealed) return false;
     return true;
   }), [rolls, isRoomMode]);
 
-  // Fractal only on the most recent critical success (a chained explosion die)
   const mostRecentCritId = useMemo(() => visibleRolls.find((roll) =>
     roll.dice?.some((die) => die.chainDepth != null && die.chainDepth >= 2)
   )?.id, [visibleRolls]);
 
   return (
     <div className={styles.Ledger}>
+      {isRoomMode && <div ref={topTriggerRef} className={styles.loadTrigger} aria-hidden="true" />}
+
       <ul>
         {visibleRolls.map((roll) => {
           const rr = isRoomMode && isRoomRoll(roll) ? roll : null;
@@ -87,22 +118,18 @@ export default function Ledger({
           const isRevealed = rr?.isRevealed || false;
           const isLocal = rr?.isLocal || false;
 
-          // Secret roll from someone else that hasn't been revealed
           const isSecretPlaceholder =
             visibility === 'secret' && !isLocal && !isRevealed;
 
-          // Show badge for non-shared rolls
           const badge = isRevealed
             ? 'revealed'
             : visibility !== 'shared'
               ? visibility
               : null;
 
-          // Show reveal button for local secret/hidden rolls that haven't been revealed
           const showReveal =
             isLocal && !isRevealed && visibility !== 'shared';
 
-          // Can spend CP: solo mode always, room mode only on own rolls
           const canSpendCp = !isRoomMode || isLocal;
 
           return (
@@ -164,8 +191,8 @@ export default function Ledger({
 
       {isRoomMode && (
         <>
-          <div ref={loadTriggerRef} className={styles.loadTrigger} aria-hidden="true" />
-          {isLoadingMore && <div className={styles.loadStatus}>Loading older rolls…</div>}
+          <div ref={bottomTriggerRef} className={styles.loadTrigger} aria-hidden="true" />
+          {(isLoadingMore || isLoadingNewer) && <div className={styles.loadStatus}>Loading rolls…</div>}
           {!hasMore && visibleRolls.length > 0 && (
             <div className={styles.loadStatus}>Beginning of roll history.</div>
           )}

@@ -8,6 +8,7 @@ import type { Roll, RoomRoll, RollVisibility } from '../dice/types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const ROOM_ROLLS_PAGE_SIZE = 10;
+const MAX_LOADED_ROOM_ROLLS = 30;
 
 interface RoomState {
   id: string;
@@ -30,7 +31,9 @@ export function useRoom() {
   const [error, setError] = useState<string | null>(null);
   const [presenceUsers, setPresenceUsers] = useState<PresenceUser[]>([]);
   const [hasOlderRolls, setHasOlderRolls] = useState(false);
+  const [hasNewerRolls, setHasNewerRolls] = useState(false);
   const [isLoadingOlderRolls, setIsLoadingOlderRolls] = useState(false);
+  const [isLoadingNewerRolls, setIsLoadingNewerRolls] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const joinOpRef = useRef(0);
   const roomRef = useRef<RoomState | null>(null);
@@ -38,6 +41,7 @@ export function useRoom() {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptRef = useRef(0);
   const oldestLoadedCreatedAtRef = useRef<string | null>(null);
+  const newestLoadedCreatedAtRef = useRef<string | null>(null);
 
   const cleanup = useCallback(() => {
     if (reconnectTimerRef.current) {
@@ -52,12 +56,15 @@ export function useRoom() {
     setPresenceUsers([]);
   }, []);
 
+  const getRollCursor = useCallback((roll: RoomRoll): string => ((roll as RoomRoll & { _createdAt?: string })._createdAt ?? roll.date), []);
+
   const mapRoomRows = useCallback((rows: Array<{
     roll_data: Roll;
     user_nickname: string;
     visibility?: string;
     is_revealed?: boolean;
     user_id?: string;
+    created_at?: string;
   }>): RoomRoll[] => rows.map((row) => ({
     ...(row.roll_data as Roll),
     nickname: row.user_nickname,
@@ -65,12 +72,13 @@ export function useRoom() {
     shouldAnimate: false,
     visibility: (row.visibility as RollVisibility) || 'shared',
     isRevealed: row.is_revealed || false,
-  })), []);
+    _createdAt: row.created_at,
+  } as RoomRoll)), []);
 
   const fetchRecentRolls = useCallback(async (roomId: string) => {
     if (!supabase) return;
     const sb = supabase;
-    return withAsyncSpan('room.fetch_recent_rolls', { 'room.id': roomId }, async (span) => {
+    return withAsyncSpan('room.fetch_recent_rolls', { 'room.id': roomId }, async () => {
       const { data: historyRows } = await sb
         .from('room_rolls')
         .select('*')
@@ -79,14 +87,22 @@ export function useRoom() {
         .limit(ROOM_ROLLS_PAGE_SIZE);
 
       const rows = historyRows ?? [];
-      const oldestRow = rows[rows.length - 1];
-      oldestLoadedCreatedAtRef.current = oldestRow?.created_at ?? null;
+      if (rows.length === 0) {
+        oldestLoadedCreatedAtRef.current = null;
+        newestLoadedCreatedAtRef.current = null;
+        setRoomRolls([]);
+        setHasOlderRolls(false);
+        setHasNewerRolls(false);
+        return;
+      }
+
+      oldestLoadedCreatedAtRef.current = rows[rows.length - 1]?.created_at ?? null;
+      newestLoadedCreatedAtRef.current = rows[0]?.created_at ?? null;
 
       const history = mapRoomRows(rows).reverse();
-      span.setAttribute('room.recent_rolls_count', history.length);
-      span.setAttribute('room.page_size', ROOM_ROLLS_PAGE_SIZE);
       setRoomRolls(history);
       setHasOlderRolls(rows.length === ROOM_ROLLS_PAGE_SIZE);
+      setHasNewerRolls(false);
     });
   }, [mapRoomRows]);
 
@@ -119,7 +135,18 @@ export function useRoom() {
       setRoomRolls((prev) => {
         const existing = new Set(prev.map((r) => r.id));
         const dedupedHistory = history.filter((r) => !existing.has(r.id));
-        return [...dedupedHistory, ...prev];
+        const next = [...dedupedHistory, ...prev];
+
+        if (next.length <= MAX_LOADED_ROOM_ROLLS) {
+          newestLoadedCreatedAtRef.current = next[next.length - 1] ? getRollCursor(next[next.length - 1]) : newestLoadedCreatedAtRef.current;
+          return next;
+        }
+
+        const trimmed = next.slice(0, MAX_LOADED_ROOM_ROLLS);
+        const newestLoadedRoll = trimmed[trimmed.length - 1];
+        newestLoadedCreatedAtRef.current = newestLoadedRoll ? getRollCursor(newestLoadedRoll) : newestLoadedCreatedAtRef.current;
+        setHasNewerRolls(true);
+        return trimmed;
       });
 
       if (rows.length < ROOM_ROLLS_PAGE_SIZE) {
@@ -128,7 +155,64 @@ export function useRoom() {
     } finally {
       setIsLoadingOlderRolls(false);
     }
-  }, [hasOlderRolls, isLoadingOlderRolls, mapRoomRows]);
+  }, [getRollCursor, hasOlderRolls, isLoadingOlderRolls, mapRoomRows]);
+
+  const loadNewerRolls = useCallback(async () => {
+    if (!supabase || !roomRef.current || !newestLoadedCreatedAtRef.current || isLoadingNewerRolls || !hasNewerRolls) {
+      return;
+    }
+
+    setIsLoadingNewerRolls(true);
+    const sb = supabase;
+    const roomId = roomRef.current.id;
+
+    try {
+      const { data: newerRows } = await sb
+        .from('room_rolls')
+        .select('*')
+        .eq('room_id', roomId)
+        .gt('created_at', newestLoadedCreatedAtRef.current)
+        .order('created_at', { ascending: true })
+        .limit(ROOM_ROLLS_PAGE_SIZE);
+
+      const rows = newerRows ?? [];
+      if (rows.length === 0) {
+        setHasNewerRolls(false);
+        return;
+      }
+
+      newestLoadedCreatedAtRef.current = rows[rows.length - 1]?.created_at ?? newestLoadedCreatedAtRef.current;
+      const newerHistory = mapRoomRows(rows);
+      setRoomRolls((prev) => {
+        const existing = new Set(prev.map((r) => r.id));
+        const dedupedNewer = newerHistory.filter((r) => !existing.has(r.id));
+        const next = [...prev, ...dedupedNewer];
+
+        if (next.length <= MAX_LOADED_ROOM_ROLLS) {
+          oldestLoadedCreatedAtRef.current = next[0] ? getRollCursor(next[0]) : oldestLoadedCreatedAtRef.current;
+          return next;
+        }
+
+        const trimmed = next.slice(next.length - MAX_LOADED_ROOM_ROLLS);
+        const oldestLoadedRoll = trimmed[0];
+        oldestLoadedCreatedAtRef.current = oldestLoadedRoll ? getRollCursor(oldestLoadedRoll) : oldestLoadedCreatedAtRef.current;
+        setHasOlderRolls(true);
+        return trimmed;
+      });
+
+      if (rows.length < ROOM_ROLLS_PAGE_SIZE) {
+        setHasNewerRolls(false);
+      }
+    } finally {
+      setIsLoadingNewerRolls(false);
+    }
+  }, [getRollCursor, hasNewerRolls, isLoadingNewerRolls, mapRoomRows]);
+
+  const snapToRecentRolls = useCallback(async () => {
+    const currentRoom = roomRef.current;
+    if (!currentRoom || isLoadingOlderRolls || isLoadingNewerRolls) return;
+    await fetchRecentRolls(currentRoom.id);
+  }, [fetchRecentRolls, isLoadingNewerRolls, isLoadingOlderRolls]);
 
   const subscribeToRoom = useCallback((roomData: RoomState, currentNickname: string) => {
     if (!supabase) return;
@@ -152,6 +236,7 @@ export function useRoom() {
             visibility?: string;
             is_revealed?: boolean;
             user_id?: string;
+            created_at?: string;
           };
           if (row.room_id !== roomId) return;
           const incoming: RoomRoll = {
@@ -161,10 +246,15 @@ export function useRoom() {
             shouldAnimate: true,
             visibility: (row.visibility as RollVisibility) || 'shared',
             isRevealed: row.is_revealed || false,
-          };
+            _createdAt: row.created_at,
+          } as RoomRoll;
           setRoomRolls((prev) => {
             if (prev.some((r) => r.id === incoming.id)) return prev;
-            return [...prev, incoming];
+            const next = [...prev, incoming];
+            newestLoadedCreatedAtRef.current = row.created_at ?? newestLoadedCreatedAtRef.current;
+            if (next.length <= MAX_LOADED_ROOM_ROLLS) return next;
+            setHasOlderRolls(true);
+            return next.slice(next.length - MAX_LOADED_ROOM_ROLLS);
           });
         }
       )
@@ -186,12 +276,10 @@ export function useRoom() {
           setRoomRolls((prev) =>
             prev.map((r) => {
               if (r.id !== row.roll_id) return r;
-              // CP dice appended: dice count changed
               if (row.roll_data && row.roll_data.dice.length !== r.dice.length) {
                 return { ...r, dice: row.roll_data.dice, shouldAnimate: true };
               }
               const isRevealed = row.is_revealed || false;
-              // Nothing meaningful changed — return same reference to prevent re-render
               if (isRevealed === (r.isRevealed || false)) {
                 return r;
               }
@@ -223,19 +311,16 @@ export function useRoom() {
           });
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           setIsConnected(false);
-          // Auto-reconnect with exponential backoff + jitter
           if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
           const delay = getBackoffDelay(reconnectAttemptRef.current);
           reconnectAttemptRef.current++;
           reconnectTimerRef.current = setTimeout(() => {
             const currentRoom = roomRef.current;
             if (currentRoom && supabase) {
-              // Clean up old channel and re-subscribe
               if (channelRef.current) {
                 supabase.removeChannel(channelRef.current);
                 channelRef.current = null;
               }
-              // Refresh recent rolls then re-subscribe
               fetchRecentRolls(currentRoom.id).then(() => {
                 subscribeToRoom(currentRoom, nicknameRef.current);
               });
@@ -265,7 +350,6 @@ export function useRoom() {
       cleanup();
 
       try {
-        // Find or create room
         let roomData: RoomState;
         const { data: existing } = await sb
           .from('rooms')
@@ -310,11 +394,9 @@ export function useRoom() {
         setRoom(roomData);
         roomRef.current = roomData;
 
-        // Fetch existing rolls
         await fetchRecentRolls(roomData.id);
         if (isStale()) return;
 
-        // Subscribe to new rolls and presence
         subscribeToRoom(roomData, nicknameRef.current);
       } catch (err) {
         if (!isStale()) {
@@ -373,12 +455,10 @@ export function useRoom() {
     const roomId = room.id;
 
     return withAsyncSpan('room.reveal_roll', { 'room.id': roomId, 'roll.id': rollId }, async () => {
-      // Optimistic local update — also clear shouldAnimate so DiceTray doesn't replay
       setRoomRolls((prev) =>
         prev.map((r) => (r.id === rollId ? { ...r, isRevealed: true, shouldAnimate: false } : r))
       );
 
-      // Persist — triggers UPDATE realtime for other clients
       await sb
         .from('room_rolls')
         .update({ is_revealed: true })
@@ -397,12 +477,10 @@ export function useRoom() {
       'roll.id': rollId,
       'roll.dice_count': updatedRoll.dice.length,
     }, async () => {
-      // Optimistic local update
       setRoomRolls((prev) =>
         prev.map((r) => (r.id === rollId ? { ...r, dice: updatedRoll.dice, shouldAnimate: true } : r))
       );
 
-      // Persist — triggers UPDATE realtime for other clients
       await sb
         .from('room_rolls')
         .update({ roll_data: updatedRoll })
@@ -416,9 +494,12 @@ export function useRoom() {
     setRoom(null);
     roomRef.current = null;
     oldestLoadedCreatedAtRef.current = null;
+    newestLoadedCreatedAtRef.current = null;
     setRoomRolls([]);
     setHasOlderRolls(false);
+    setHasNewerRolls(false);
     setIsLoadingOlderRolls(false);
+    setIsLoadingNewerRolls(false);
     setError(null);
     setIsJoining(false);
   }, [cleanup]);
@@ -433,7 +514,6 @@ export function useRoom() {
     }
   }, [isConnected]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => cleanup();
   }, [cleanup]);
@@ -452,8 +532,12 @@ export function useRoom() {
     revealRoll,
     broadcastCpSpend,
     hasOlderRolls,
+    hasNewerRolls,
     isLoadingOlderRolls,
+    isLoadingNewerRolls,
     loadOlderRolls,
+    loadNewerRolls,
+    snapToRecentRolls,
     leaveRoom,
     updatePresenceNickname,
   };
