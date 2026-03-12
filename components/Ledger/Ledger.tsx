@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useState } from 'react';
 import DiceTray from '../DiceTray/DiceTray';
 import type { Roll, RoomRoll, RollComment } from '../../dice/types';
 import styles from './Ledger.module.css';
@@ -38,6 +38,8 @@ export default function Ledger({
 }: LedgerProps) {
   const topTriggerRef = useRef<HTMLDivElement | null>(null);
   const bottomTriggerRef = useRef<HTMLDivElement | null>(null);
+  const jumpThresholdRef = useRef<HTMLLIElement | null>(null);
+  const [showJumpToRecent, setShowJumpToRecent] = useState(false);
 
   useEffect(() => {
     if (!onLoadMore || !hasMore || !bottomTriggerRef.current) return;
@@ -107,12 +109,42 @@ export default function Ledger({
     roll.dice?.some((die) => die.chainDepth != null && die.chainDepth >= 2)
   )?.id, [visibleRolls]);
 
+  useEffect(() => {
+    if (!isRoomMode || !jumpThresholdRef.current || visibleRolls.length <= 30) {
+      setShowJumpToRecent(false);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (!entry) return;
+        const isPastThreshold = !entry.isIntersecting && entry.boundingClientRect.top < 0;
+        setShowJumpToRecent(isPastThreshold);
+      },
+      {
+        root: null,
+        threshold: 0,
+      }
+    );
+
+    observer.observe(jumpThresholdRef.current);
+    return () => observer.disconnect();
+  }, [isRoomMode, visibleRolls.length]);
+
+  const handleJumpToRecent = () => {
+    if (onSnapToRecent) {
+      onSnapToRecent();
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className={styles.Ledger}>
       {isRoomMode && <div ref={topTriggerRef} className={styles.loadTrigger} aria-hidden="true" />}
 
       <ul>
-        {visibleRolls.map((roll) => {
+        {visibleRolls.map((roll, index) => {
           const rr = isRoomMode && isRoomRoll(roll) ? roll : null;
           const visibility = rr?.visibility || 'shared';
           const isRevealed = rr?.isRevealed || false;
@@ -133,7 +165,10 @@ export default function Ledger({
           const canSpendCp = !isRoomMode || isLocal;
 
           return (
-            <li key={roll.id}>
+            <li
+              key={roll.id}
+              ref={index === 29 ? jumpThresholdRef : null}
+            >
               <div className={styles.rollHeader}>
                 {rr && (
                   <span className={styles.nickname}>
@@ -191,6 +226,15 @@ export default function Ledger({
 
       {isRoomMode && (
         <>
+          {showJumpToRecent && onSnapToRecent && (
+            <button
+              type="button"
+              className={styles.jumpToRecentButton}
+              onClick={handleJumpToRecent}
+            >
+              🚀 Back to Recent
+            </button>
+          )}
           <div ref={bottomTriggerRef} className={styles.loadTrigger} aria-hidden="true" />
           {(isLoadingMore || isLoadingNewer) && <div className={styles.loadStatus}>Loading rolls…</div>}
           {!hasMore && visibleRolls.length > 0 && (

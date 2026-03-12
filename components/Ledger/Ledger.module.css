@@ -179,3 +179,27 @@
   letter-spacing: 1px;
   color: rgba(0, 255, 255, 0.45);
 }
+
+.jumpToRecentButton {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 30;
+  font-family: var(--font-rajdhani), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 255, 255, 0.45);
+  background: rgba(0, 18, 30, 0.92);
+  color: rgba(0, 255, 255, 0.9);
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.2);
+}
+
+.jumpToRecentButton:hover {
+  border-color: rgba(0, 255, 255, 0.7);
+  box-shadow: 0 0 16px rgba(0, 255, 255, 0.35);
+}
