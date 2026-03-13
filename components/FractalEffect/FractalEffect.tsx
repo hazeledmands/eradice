@@ -226,11 +226,16 @@ export default function FractalEffect({ opacity = 1, center = { x: 0.5, y: 0.5 }
     const SLOW_FRAME_MS = 1000 / 12;
 
     const scheduleNextFrame = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = undefined;
+      }
       if (modeRef.current === 'paused') {
         return;
       }
       if (modeRef.current === 'slow') {
         timeoutId = setTimeout(() => {
+          timeoutId = undefined;
           raf = requestAnimationFrame(render);
         }, SLOW_FRAME_MS);
         return;

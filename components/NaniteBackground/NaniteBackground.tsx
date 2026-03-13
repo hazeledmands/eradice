@@ -136,11 +136,16 @@ export default function NaniteBackground() {
         const SLOW_FRAME_MS = 1000 / 12;
 
         const scheduleNextFrame = () => {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = undefined;
+            }
             if (modeRef.current === 'paused') {
                 return;
             }
             if (modeRef.current === 'slow') {
                 timeoutId = setTimeout(() => {
+                    timeoutId = undefined;
                     rafId = requestAnimationFrame(frame);
                 }, SLOW_FRAME_MS);
                 return;
@@ -303,6 +308,10 @@ export default function NaniteBackground() {
 
         function handleResize() {
             cancelAnimationFrame(rafId);
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = undefined;
+            }
             const prevW = W,
                 prevH = H;
             initCanvas();
