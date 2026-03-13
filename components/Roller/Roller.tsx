@@ -14,7 +14,7 @@ import { supabaseEnabled } from '../../lib/supabase';
 import { generateSlug } from '../../lib/slug';
 import { useTypewriter } from '../../hooks/useTypewriter';
 import { selectPrompt } from './terminalPrompts';
-import { withSpan } from '../../lib/tracing';
+import { withSpan, setSpanUserName } from '../../lib/tracing';
 import type { Roll, Die, RollVisibility } from '../../dice/types';
 import styles from './Roller.module.css';
 
@@ -87,6 +87,11 @@ export default function Roller({ roomSlug, onRoomCreated, onRoomLeft }: RollerPr
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomSlug, identityReady]);
+
+  // Keep span user name in sync with nickname
+  useEffect(() => {
+    setSpanUserName(nickname);
+  }, [nickname]);
 
   // Sync nickname to presence whenever we connect (or reconnect)
   useEffect(() => {
