@@ -42,8 +42,11 @@ export default function Ledger({
   const [showJumpToRecent, setShowJumpToRecent] = useState(false);
   const [searchText, setSearchText] = useState('');
 
+  const normalizedSearchText = searchText.trim().toLowerCase();
+  const isSearching = normalizedSearchText.length > 0;
+
   useEffect(() => {
-    if (!onLoadMore || !hasMore || !bottomTriggerRef.current) return;
+    if (isSearching || !onLoadMore || !hasMore || !bottomTriggerRef.current) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -60,10 +63,10 @@ export default function Ledger({
 
     observer.observe(bottomTriggerRef.current);
     return () => observer.disconnect();
-  }, [hasMore, isLoadingMore, onLoadMore]);
+  }, [hasMore, isLoadingMore, isSearching, onLoadMore]);
 
   useEffect(() => {
-    if (!topTriggerRef.current || (!hasNewer && !onSnapToRecent)) return;
+    if (isSearching || !topTriggerRef.current || (!hasNewer && !onSnapToRecent)) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -87,7 +90,7 @@ export default function Ledger({
 
     observer.observe(topTriggerRef.current);
     return () => observer.disconnect();
-  }, [hasNewer, isLoadingNewer, onLoadNewer, onSnapToRecent]);
+  }, [hasNewer, isLoadingNewer, isSearching, onLoadNewer, onSnapToRecent]);
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -106,8 +109,6 @@ export default function Ledger({
     return true;
   }), [rolls, isRoomMode]);
 
-  const normalizedSearchText = searchText.trim().toLowerCase();
-
   const filteredRolls = useMemo(() => {
     if (!normalizedSearchText) return visibleRolls;
     return visibleRolls.filter((roll) => {
@@ -122,7 +123,7 @@ export default function Ledger({
   )?.id, [filteredRolls]);
 
   useEffect(() => {
-    if (!isRoomMode || !jumpThresholdRef.current || filteredRolls.length <= 30) {
+    if (!isRoomMode || isSearching || !jumpThresholdRef.current || filteredRolls.length <= 30) {
       setShowJumpToRecent(false);
       return;
     }
@@ -142,7 +143,7 @@ export default function Ledger({
 
     observer.observe(jumpThresholdRef.current);
     return () => observer.disconnect();
-  }, [isRoomMode, filteredRolls.length]);
+  }, [isRoomMode, isSearching, filteredRolls.length]);
 
   const handleJumpToRecent = () => {
     if (onSnapToRecent) {
@@ -250,7 +251,7 @@ export default function Ledger({
 
       {isRoomMode && (
         <>
-          {showJumpToRecent && onSnapToRecent && (
+          {!isSearching && showJumpToRecent && onSnapToRecent && (
             <button
               type="button"
               className={styles.jumpToRecentButton}
@@ -259,9 +260,9 @@ export default function Ledger({
               🚀 Back to Recent
             </button>
           )}
-          <div ref={bottomTriggerRef} className={styles.loadTrigger} aria-hidden="true" />
-          {(isLoadingMore || isLoadingNewer) && <div className={styles.loadStatus}>Loading rolls…</div>}
-          {!hasMore && filteredRolls.length > 0 && (
+          {!isSearching && <div ref={bottomTriggerRef} className={styles.loadTrigger} aria-hidden="true" />}
+          {!isSearching && (isLoadingMore || isLoadingNewer) && <div className={styles.loadStatus}>Loading rolls…</div>}
+          {!isSearching && !hasMore && filteredRolls.length > 0 && (
             <div className={styles.loadStatus}>Beginning of roll history.</div>
           )}
         </>

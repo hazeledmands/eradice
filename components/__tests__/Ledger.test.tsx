@@ -49,6 +49,24 @@ describe('Ledger memoization', () => {
     expect(source).toContain('useMemo');
   });
 
+
+  it('hides infinite-scroll status UI while search is active in room mode', () => {
+    const rolls: Roll[] = [
+      { ...makeRoll(1), text: 'alpha' },
+      { ...makeRoll(2), text: 'beta' },
+    ];
+
+    render(<Ledger rolls={rolls} isRoomMode hasMore={false} />);
+
+    expect(screen.getByText('Beginning of roll history.')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Search past rolls'), {
+      target: { value: 'alpha' },
+    });
+
+    expect(screen.queryByText('Beginning of roll history.')).not.toBeInTheDocument();
+  });
+
   it('filters past rolls by search text', () => {
     const rolls: Roll[] = [
       { ...makeRoll(1), text: '3d+2' },
