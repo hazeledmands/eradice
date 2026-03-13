@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import Ledger from '../Ledger/Ledger';
 import type { Roll } from '../../dice/types';
 
@@ -47,5 +47,24 @@ describe('Ledger memoization', () => {
       'utf8'
     );
     expect(source).toContain('useMemo');
+  });
+
+  it('filters past rolls by search text', () => {
+    const rolls: Roll[] = [
+      { ...makeRoll(1), text: '3d+2' },
+      { ...makeRoll(2), text: '5d-1' },
+    ];
+
+    render(<Ledger rolls={rolls} />);
+
+    expect(screen.getByText('3d+2')).toBeInTheDocument();
+    expect(screen.getByText('5d-1')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Search past rolls'), {
+      target: { value: '3d+2' },
+    });
+
+    expect(screen.getByText('3d+2')).toBeInTheDocument();
+    expect(screen.queryByText('5d-1')).not.toBeInTheDocument();
   });
 });
