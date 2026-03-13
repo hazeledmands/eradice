@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useAnimationEngagement } from '../../hooks/useAnimationEngagement';
 import { getParticleBudget } from "../../lib/particleBudget";
 import styles from "./NaniteBackground.module.css";
 
@@ -103,6 +104,12 @@ interface Particle {
 export default function NaniteBackground() {
     const bgCanvasRef = useRef<HTMLCanvasElement>(null);
     const fgCanvasRef = useRef<HTMLCanvasElement>(null);
+    const animationMode = useAnimationEngagement();
+    const modeRef = useRef(animationMode);
+
+    useEffect(() => {
+        modeRef.current = animationMode;
+    }, [animationMode]);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -124,6 +131,27 @@ export default function NaniteBackground() {
         let mouseX = -9999;
         let mouseY = -9999;
         let particles: Particle[] = [];
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+        const SLOW_FRAME_MS = 1000 / 12;
+
+        const scheduleNextFrame = () => {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = undefined;
+            }
+            if (modeRef.current === 'paused') {
+                return;
+            }
+            if (modeRef.current === 'slow') {
+                timeoutId = setTimeout(() => {
+                    timeoutId = undefined;
+                    rafId = requestAnimationFrame(frame);
+                }, SLOW_FRAME_MS);
+                return;
+            }
+            rafId = requestAnimationFrame(frame);
+        };
 
         function initCanvas() {
             W = Math.ceil(window.innerWidth / 2);
@@ -275,11 +303,15 @@ export default function NaniteBackground() {
                 else if (p.y >= H) p.y -= H;
             }
 
-            rafId = requestAnimationFrame(frame);
+            scheduleNextFrame();
         }
 
         function handleResize() {
             cancelAnimationFrame(rafId);
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = undefined;
+            }
             const prevW = W,
                 prevH = H;
             initCanvas();
@@ -289,7 +321,7 @@ export default function NaniteBackground() {
                 p.y = (p.y / prevH) * H;
             }
             startTime = performance.now();
-            rafId = requestAnimationFrame(frame);
+            scheduleNextFrame();
         }
 
         function handleMouseMove(e: MouseEvent) {
@@ -299,16 +331,17 @@ export default function NaniteBackground() {
 
         initCanvas();
         initParticles();
-        rafId = requestAnimationFrame(frame);
+        scheduleNextFrame();
         window.addEventListener("resize", handleResize);
         window.addEventListener("mousemove", handleMouseMove);
 
         return () => {
             cancelAnimationFrame(rafId);
+            if (timeoutId) clearTimeout(timeoutId);
             window.removeEventListener("resize", handleResize);
             window.removeEventListener("mousemove", handleMouseMove);
         };
-    }, []);
+    }, [animationMode]);
 
     return (
         <>
