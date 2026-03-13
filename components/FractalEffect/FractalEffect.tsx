@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useAnimationEngagement } from '../../hooks/useAnimationEngagement';
 import { getTracer } from '../../lib/tracing';
 import styles from './FractalEffect.module.css';
 
@@ -120,6 +121,8 @@ export default function FractalEffect({ opacity = 1, center = { x: 0.5, y: 0.5 }
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const opacityRef  = useRef(opacity);
   const centerRef   = useRef(center);
+  const animationMode = useAnimationEngagement();
+  const modeRef = useRef(animationMode);
 
   // Pick algorithm once per mount; stable across re-renders.
   // useRef avoids SSR hydration mismatch (useState initializer runs on server too).
@@ -132,6 +135,7 @@ export default function FractalEffect({ opacity = 1, center = { x: 0.5, y: 0.5 }
 
   useEffect(() => { opacityRef.current = opacity; }, [opacity]);
   useEffect(() => { centerRef.current  = center;  }, [center]);
+  useEffect(() => { modeRef.current = animationMode; }, [animationMode]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -217,6 +221,22 @@ export default function FractalEffect({ opacity = 1, center = { x: 0.5, y: 0.5 }
 
     const startTime = performance.now();
     let raf = 0;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const SLOW_FRAME_MS = 1000 / 12;
+
+    const scheduleNextFrame = () => {
+      if (modeRef.current === 'paused') {
+        return;
+      }
+      if (modeRef.current === 'slow') {
+        timeoutId = setTimeout(() => {
+          raf = requestAnimationFrame(render);
+        }, SLOW_FRAME_MS);
+        return;
+      }
+      raf = requestAnimationFrame(render);
+    };
 
     function render() {
       if (!gl || !canvas) return;
@@ -227,20 +247,21 @@ export default function FractalEffect({ opacity = 1, center = { x: 0.5, y: 0.5 }
       gl.uniform1f(uTime,    t);
       gl.uniform1f(uOpacity, opacityRef.current);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-      raf = requestAnimationFrame(render);
+      scheduleNextFrame();
     }
 
-    raf = requestAnimationFrame(render);
+    scheduleNextFrame();
 
     return () => {
       cancelAnimationFrame(raf);
+      if (timeoutId) clearTimeout(timeoutId);
       ro.disconnect();
       gl.deleteProgram(program);
       gl.deleteShader(vert);
       gl.deleteShader(frag);
       gl.deleteBuffer(buf);
     };
-  }, []); // run once; algIndex.current is set before effect runs
+  }, [animationMode]);
 
   const cls = [styles.canvas, active ? styles.active : ''].filter(Boolean).join(' ');
   return <canvas ref={canvasRef} className={cls} />;
