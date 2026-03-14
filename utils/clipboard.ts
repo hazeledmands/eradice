@@ -25,9 +25,11 @@ export async function copyToClipboard(text: string): Promise<void> {
       document.body.appendChild(textArea);
       textArea.select();
       try {
-        document.execCommand('copy');
+        const success = document.execCommand('copy');
+        if (!success) throw new Error('execCommand returned false');
       } catch (err) {
         console.error('Fallback copy failed:', err);
+        document.body.removeChild(textArea);
         throw err;
       }
       document.body.removeChild(textArea);
