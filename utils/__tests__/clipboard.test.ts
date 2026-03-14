@@ -63,6 +63,14 @@ describe('copyToClipboard', () => {
       removeChildSpy.mockRestore();
     });
 
+    it('rejects when execCommand returns false', async () => {
+      const execCommandMock = jest.spyOn(document, 'execCommand').mockReturnValue(false);
+
+      await expect(copyToClipboard('test')).rejects.toThrow('execCommand returned false');
+
+      execCommandMock.mockRestore();
+    });
+
     it('rejects when execCommand throws', async () => {
       const execCommandMock = jest
         .spyOn(document, 'execCommand')
@@ -71,6 +79,18 @@ describe('copyToClipboard', () => {
       await expect(copyToClipboard('test')).rejects.toThrow('execCommand failed');
 
       execCommandMock.mockRestore();
+    });
+
+    it('removes the textarea from the DOM even when execCommand fails', async () => {
+      const execCommandMock = jest.spyOn(document, 'execCommand').mockReturnValue(false);
+      const removeChildSpy = jest.spyOn(document.body, 'removeChild');
+
+      await copyToClipboard('test').catch(() => {});
+
+      expect(removeChildSpy).toHaveBeenCalled();
+
+      execCommandMock.mockRestore();
+      removeChildSpy.mockRestore();
     });
   });
 });
