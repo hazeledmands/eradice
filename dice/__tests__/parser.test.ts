@@ -147,6 +147,31 @@ describe('parseDiceNotation - Property-Based Tests', () => {
   });
 
   /**
+   * Property 3b: /roll prefix should be stripped before parsing
+   */
+  it('should parse notation prefixed with /roll', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 99 }),
+        fc.boolean(),
+        fc.integer({ min: 0, max: 1000 }),
+        fc.constantFrom('/roll', '/Roll', '/ROLL'),
+        fc.array(fc.constantFrom(' ', '\t'), { minLength: 0, maxLength: 3 }).map((arr) => arr.join('')),
+        (diceCount, includeModifier, modifier, prefix, ws) => {
+          const base = includeModifier ? `${diceCount}d+${modifier}` : `${diceCount}d`;
+          const input = `${prefix}${ws}${base}`;
+
+          const result = parseDiceNotation(input);
+
+          expect(result).not.toBeNull();
+          expect(result?.diceCount).toBe(diceCount);
+          expect(result?.modifier).toBe(includeModifier ? modifier : 0);
+        }
+      )
+    );
+  });
+
+  /**
    * Property 4: Round-trip property - parsing should be consistent
    * If we parse a valid string, the result should match what we expect
    */
