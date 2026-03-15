@@ -69,6 +69,36 @@ describe('parseDiceNotation - Property-Based Tests', () => {
   });
 
   /**
+   * Property 1b: Valid dice notation with die type (e.g., "6d6", "6d6+4", "6d20 + 2")
+   * Die type (the number after 'd') is accepted but ignored — this app always rolls d6s.
+   */
+  it('should parse dice notation with an explicit die type', () => {
+    const whitespaceArb = fc.array(fc.constantFrom(' ', '\t'), { minLength: 0, maxLength: 3 }).map((arr) => arr.join(''));
+
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 99 }), // dice count
+        fc.integer({ min: 1, max: 100 }), // die type (e.g. 6, 8, 20) — ignored
+        fc.boolean(), // whether to include modifier
+        fc.integer({ min: 0, max: 1000 }), // modifier value
+        fc.constantFrom('d', 'D'),
+        whitespaceArb, // whitespace between die type and '+'
+        whitespaceArb, // whitespace after '+'
+        (diceCount, dieType, includeModifier, modifier, dChar, ws1, ws2) => {
+          const base = `${diceCount}${dChar}${dieType}`;
+          const input = includeModifier ? `${base}${ws1}+${ws2}${modifier}` : base;
+
+          const result = parseDiceNotation(input);
+
+          expect(result).not.toBeNull();
+          expect(result?.diceCount).toBe(diceCount);
+          expect(result?.modifier).toBe(includeModifier ? modifier : 0);
+        }
+      )
+    );
+  });
+
+  /**
    * Property 2b: Zero dice count should return null
    */
   it('should return null for zero dice count', () => {
