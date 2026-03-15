@@ -85,6 +85,8 @@ yarn lint
 Enter dice notation in the input field:
 - `3d` - Roll 3 dice
 - `3d+2` - Roll 3 dice and add 2 to the result
+- `3d6` - Roll 3 dice (die type is accepted but ignored — all dice are d6)
+- `3d6+2` - Roll 3 dice and add 2 to the result
 - The last die is an exploding die that can trigger additional rolls
 
 ## Project Structure
