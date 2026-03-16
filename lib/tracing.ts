@@ -2,6 +2,13 @@ import { trace, type Span, SpanStatusCode } from '@opentelemetry/api';
 
 const TRACER_NAME = 'eradice';
 
+let _userName: string | null = null;
+
+/** Set the current user name to be included on all subsequent spans. */
+export function setSpanUserName(name: string | null) {
+  _userName = name;
+}
+
 export function getTracer() {
   return trace.getTracer(TRACER_NAME);
 }
@@ -16,8 +23,9 @@ export function withSpan<T>(
   fn: (span: Span) => T,
 ): T {
   return getTracer().startActiveSpan(name, (span) => {
+    if (_userName) span.setAttribute('user.name', _userName);
+    span.setAttributes(attrs);
     try {
-      span.setAttributes(attrs);
       const result = fn(span);
       span.end();
       return result;
@@ -40,8 +48,9 @@ export async function withAsyncSpan<T>(
   fn: (span: Span) => Promise<T>,
 ): Promise<T> {
   return getTracer().startActiveSpan(name, async (span) => {
+    if (_userName) span.setAttribute('user.name', _userName);
+    span.setAttributes(attrs);
     try {
-      span.setAttributes(attrs);
       const result = await fn(span);
       span.end();
       return result;
