@@ -425,11 +425,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: clamp(2.5rem, 8vw, 3.5rem);
-  height: clamp(2.5rem, 8vw, 3.5rem);
+  width: clamp(2.3rem, 7.4vw, 3.2rem);
+  height: clamp(2.3rem, 7.4vw, 3.2rem);
   text-align: center;
-  min-width: clamp(2.5rem, 8vw, 3.5rem);
-  font-size: clamp(1.1rem, 3.5vw, 1.5rem);
+  min-width: clamp(2.3rem, 7.4vw, 3.2rem);
+  font-size: clamp(1rem, 3.2vw, 1.35rem);
   font-weight: 700;
   box-shadow:
     0 0 8px rgba(0, 255, 255, 0.2),
