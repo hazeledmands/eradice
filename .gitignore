@@ -39,3 +39,6 @@ next-env.d.ts
 
 # QA screenshots
 *.png
+
+# beads issue tracker (removed; keep its daemon from re-adding state)
+.beads/
