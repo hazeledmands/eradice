@@ -32,7 +32,7 @@ jobs:
       DATABASE_URL: postgresql://postgres:test@127.0.0.1:5432/eradice
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Corepack selects the Yarn version pinned by package.json's
       # `packageManager`. Without it the runner's preinstalled Yarn 1 is used,
@@ -41,7 +41,7 @@ jobs:
       # false` supply-chain hardening.
       - run: corepack enable
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: 'yarn'
