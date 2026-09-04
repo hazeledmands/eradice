@@ -69,3 +69,60 @@ jobs:
           TEST_DATABASE_URL: postgresql://postgres:test@127.0.0.1:5432/eradice
 
       - run: yarn build
+
+  # Publishing is a JOB here rather than a separate workflow, unlike stormloop.
+  # `needs: test` is the reason: it makes "the suite passed" a precondition for
+  # pushing a tag, which two workflows triggered by the same push cannot express
+  # — they would race, and `latest` could be published from a commit whose tests
+  # were failing. It also avoids running the whole suite twice per push.
+  container:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Pull requests build but never push: the image is verified as buildable
+      # without granting fork PRs registry write or publishing a tag for code
+      # that has not landed.
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          # `latest` and the SHA are for diagnostics and manual pinning only.
+          # Argo CD Image Updater uses the semver strategy, which does not treat
+          # either as a candidate — so nothing published by an ordinary push to
+          # main ever deploys. That is deliberate; releasing is the Release
+          # workflow's job.
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and publish image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          build-args: |
+            BUILD_SHA=${{ github.sha }}
+            NEXT_PUBLIC_HONEYCOMB_API_KEY=${{ secrets.NEXT_PUBLIC_HONEYCOMB_API_KEY }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

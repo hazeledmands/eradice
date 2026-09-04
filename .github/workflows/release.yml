@@ -1,0 +1,168 @@
+name: Release
+
+# Publishing a semver tag is the ONLY thing that reaches the cluster. Argo CD
+# Image Updater runs the semver strategy against a `^1.0.0` constraint, and
+# neither `latest` nor a commit SHA is a candidate for it — so ordinary pushes
+# to main publish an image that will never deploy. Releasing is deliberately a
+# separate, dispatched act with a version number attached.
+#
+# The MAJOR is the deployment-contract signal, and the constraint in the
+# homelab repo is what turns that convention into a mechanism: the updater
+# refuses to cross it, so a release needing chart work stops promotion instead
+# of breaking the sync. Bump the major when the surrounding deployment must
+# change before the image can run — a new required variable, a new external
+# dependency, or a migration the previous revision cannot tolerate.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semantic version to release (for example, 1.0.0)
+        required: true
+        type: string
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: eradice
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:test@127.0.0.1:5432/eradice
+
+    steps:
+      - name: Require the main branch
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo 'Releases must be dispatched from main.' >&2
+          exit 1
+
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Validate release version
+        id: version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo 'Version must use the X.Y.Z format.' >&2
+            exit 1
+          fi
+
+          # Only package.json is checked. Yarn 4 records the workspace as
+          # `0.0.0-use.local` in yarn.lock rather than the real version, so
+          # there is no lockfile version to agree with — unlike npm, where
+          # package-lock.json carries it in two places.
+          package_version=$(node -p "require('./package.json').version")
+          if [[ "$package_version" != "$VERSION" ]]; then
+            echo "package.json declares $package_version, not $VERSION." >&2
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
+            echo "Tag v$VERSION already exists and will not be moved." >&2
+            exit 1
+          fi
+
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "series=${VERSION%.*}" >> "$GITHUB_OUTPUT"
+
+      # Corepack selects the Yarn pinned by package.json's `packageManager`.
+      # Without it the runner's preinstalled Yarn 1 ignores .yarnrc.yml and
+      # silently disables the enableScripts: false hardening.
+      - run: corepack enable
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'yarn'
+
+      - run: yarn install --immutable
+      - run: yarn lint
+
+      # The same three-step shape as ci.yml, and for the same reason: the
+      # hermetic run must stay green on its own, so TEST_DATABASE_URL is scoped
+      # to the run that happens after the schema exists.
+      - name: Test (no database)
+        run: yarn test
+
+      - name: Verify migrations apply to an empty database
+        run: node scripts/migrate.js
+
+      - name: Test (with database)
+        run: yarn test
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:test@127.0.0.1:5432/eradice
+
+      - run: yarn build
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          # X.Y.Z is what the chart pins and what the updater promotes to. X.Y
+          # exists for humans reading the registry; never pin it in the chart,
+          # since it moves with each patch and reintroduces the "what is
+          # actually running?" problem that pinning solves.
+          tags: |
+            type=raw,value=${{ inputs.version }}
+            type=raw,value=${{ steps.version.outputs.series }}
+            type=sha,prefix=
+
+      - name: Build and publish release image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          build-args: |
+            BUILD_SHA=${{ github.sha }}
+            NEXT_PUBLIC_HONEYCOMB_API_KEY=${{ secrets.NEXT_PUBLIC_HONEYCOMB_API_KEY }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # The tag is created only after the image exists, so a tag in this
+      # repository always has a published image behind it.
+      - name: Create annotated tag and GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag --annotate "$TAG" --message "eradice $TAG"
+          git push origin "$TAG"
+          gh release create "$TAG" --verify-tag --generate-notes --title "eradice $TAG"
