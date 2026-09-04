@@ -1,6 +1,6 @@
 {
   "name": "era-roller",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "packageManager": "yarn@4.12.0",
   "scripts": {
