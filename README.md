@@ -227,11 +227,35 @@ The image runs `node server.js` on port 3000 and expects:
 | `PGPORT`, `PGPASSWORD` | no | Completes the discrete form |
 | `CLOUDFLARE_ACCESS_TEAM_DOMAIN` | yes | Access issuer, e.g. `https://example.cloudflareaccess.com` |
 | `CLOUDFLARE_ACCESS_AUDIENCE` | yes | The Access application's `aud` tag |
-| `OTEL_*` | no | Tracing; off unless an OTLP endpoint is set |
+| `PGPOOL_MAX` | no | Pool size per process (default 10) |
 
 - Migration command: `node scripts/migrate.js`, run before each new revision
 - Liveness: `/api/health/live` (process only — never touches the database)
 - Readiness: `/api/health/ready` (identity configuration + PostgreSQL)
+
+Telemetry is **browser-side only** and has no runtime variable. `instrumentation.ts`
+runs under `typeof window !== 'undefined'`, so the server path — API routes,
+database, SSE — is untraced. Its key is `NEXT_PUBLIC_HONEYCOMB_API_KEY`, which
+Next inlines into the client bundle at build time, so it is a `--build-arg` and
+setting it on the container does nothing.
+
+### Building the image
+
+```bash
+docker build -t eradice .
+docker build -t eradice --build-arg NEXT_PUBLIC_HONEYCOMB_API_KEY=<key> .
+```
+
+The image runs as UID/GID `1000:1000` under a read-only root filesystem with no
+volume; `next/image` is unused, which is what removes the usual `.next/cache`
+write. All durable state belongs in PostgreSQL.
+
+Two parts of the layout are load-bearing and easy to break. `output: 'standalone'`
+does not include `.next/static` or `public/`, so both are copied in separately —
+omit them and the server answers with unstyled HTML and no client bundle, which
+reads as an application bug rather than a missing file. And `scripts/migrate.js`
+resolves its SQL as `../migrations` relative to itself, so that pair must keep
+its shape on disk.
 
 Both probes are unauthenticated so the kubelet can reach them on the internal
 Service; the public hostname should still be entirely covered by Access.

@@ -1,0 +1,29 @@
+# Build context exclusions.
+#
+# node_modules and .next especially: both are rebuilt inside the image, and
+# sending a local copy would both bloat the context and risk a host-built
+# artifact (wrong platform, stale, or carrying dev dependencies) overwriting
+# what the build stage produced.
+node_modules
+.next
+.yarn/cache
+.yarn/install-state.gz
+
+.git
+.github
+
+# Secrets and local configuration never belong in an image layer, even a
+# discarded build stage — layers are extractable from the published image.
+.env
+.env.*
+
+# Test and tooling output
+coverage
+*.log
+*.png
+
+# Editor and agent scratch
+.claude
+.serena
+.vscode
+.idea
