@@ -239,3 +239,47 @@ Service; the public hostname should still be entirely covered by Access.
 Deploy it only behind a trusted proxy that terminates TLS and sets the
 Cloudflare Access assertion. Direct requests without a valid assertion fail
 closed with a 401.
+
+## Migrating from Supabase
+
+`scripts/import-supabase.sh` moves the historical dataset — rooms, rolls and
+comments — from Supabase into a migrated eradice database:
+
+```bash
+node scripts/migrate.js                       # target must have the schema first
+scripts/import-supabase.sh "$SUPABASE_URL" "$TARGET_URL" \
+  --claim <supabase-auth-uuid>=<cloudflare-access-sub>
+```
+
+It refuses to run against a target that is unmigrated or already holds rows, so
+a retry means dropping and re-migrating the target rather than importing twice.
+
+Three details make this less mechanical than it looks, all of them handled by
+the script:
+
+**Ownership does not survive on its own.** Supabase identified players by an
+anonymous auth UUID; Access identifies them by an opaque subject. Migration 005
+widens both owner columns to `TEXT`, so the old UUIDs import cleanly and stay as
+provenance — but they match no Access subject, which leaves those rolls readable
+by everyone and editable by nobody. `--claim` remaps one UUID onto one Access
+subject and is the only way to keep a player's own history editable. Rows older
+than Supabase auth have a `NULL` owner and stay editable by anyone in the room,
+exactly as they were before.
+
+**The identity sequence has to clear the imported ids.** `room_rolls.id` is
+`GENERATED ALWAYS AS IDENTITY` and the dump restores explicit values. `pg_dump`
+emits its own `setval`, but the script verifies the sequence is at or past the
+highest imported id rather than trusting it: if it trails, the next roll
+inserted collides on the primary key.
+
+**The import must not announce itself.** Every write fires a trigger that
+`NOTIFY`s on `eradice_events`. Loaded naively, each imported row is broadcast to
+any client already streaming, replaying the entire history as if it were live.
+The import runs with `session_replication_role = replica` so the triggers stay
+quiet.
+
+One further hazard is worth knowing even though the script works around it: a
+`pg_dump` newer than the target writes `SET` parameters the target rejects
+(`pg_dump` 17 emits `transaction_timeout`, which PostgreSQL 16 refuses), and a
+single unknown parameter aborts the whole restore. The script drops any `SET`
+the target does not recognise.
