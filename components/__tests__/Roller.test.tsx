@@ -1,9 +1,17 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { FakeServer } from '../../test-utils/server';
 import Roller from '../Roller/Roller';
 
 describe('Roller UI Test', () => {
+  // Roller mounts the full app, including useIdentity's call to /api/me. These
+  // tests exercise solo rolling and never join a room, so answering that one
+  // route is enough — without it the hook logs a network failure on mount.
+  beforeEach(() => {
+    new FakeServer().on('GET /api/me', { body: { userId: 'test-user' } }).install();
+  });
+
   it('should roll dice multiple times and display results', async () => {
     const user = userEvent.setup();
     const { container } = render(<Roller />);
