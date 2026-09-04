@@ -25,9 +25,11 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
+    # TEST_DATABASE_URL is deliberately NOT set here: at job scope it would
+    # also apply to the hermetic run below, which happens before the schema
+    # exists. It is set on the one step that runs after migrations.
     env:
       DATABASE_URL: postgresql://postgres:test@127.0.0.1:5432/eradice
-      TEST_DATABASE_URL: postgresql://postgres:test@127.0.0.1:5432/eradice
 
     steps:
       - uses: actions/checkout@v4
@@ -49,13 +51,21 @@ jobs:
       - run: yarn install --immutable
 
       - run: yarn lint
-      - run: yarn test
+
+      # Hermetic: no TEST_DATABASE_URL, so the repository suite skips. This is
+      # what a contributor gets from a bare `yarn test`, and it must stay green
+      # on its own.
+      - name: Test (no database)
+        run: yarn test
 
       - name: Verify migrations apply to an empty database
         run: node scripts/migrate.js
 
-      # Runs the suite again now that the schema exists, so the repository
-      # integration tests execute rather than skipping.
-      - run: yarn test
+      # Now that the schema exists, run again with a database so the
+      # repository integration tests actually execute.
+      - name: Test (with database)
+        run: yarn test
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:test@127.0.0.1:5432/eradice
 
       - run: yarn build
