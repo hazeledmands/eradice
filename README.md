@@ -278,6 +278,30 @@ any client already streaming, replaying the entire history as if it were live.
 The import runs with `session_replication_role = replica` so the triggers stay
 quiet.
 
+### Working offline
+
+`pg_dump` needs the database password. A Supabase *secret key* (`sb_secret_…`)
+is an API credential and authenticates against PostgREST instead, so when that
+is all you have, `scripts/export-supabase-rest.js` pulls the same three tables
+over the REST API and writes SQL shaped like a `pg_dump` data-only dump:
+
+```bash
+SUPABASE_URL=https://<ref>.supabase.co SUPABASE_KEY=<secret key> \
+  node scripts/export-supabase-rest.js > supabase-data.sql
+```
+
+Load that into a stock PostgreSQL alongside the original `supabase/migrations`
+(stubbing `auth.uid()` and the `supabase_realtime` publication, which are the
+only Supabase-specific objects they reference) and you have a local replica the
+real import path can run against. That decouples the cutover from Supabase
+entirely: the export happens once, and every subsequent rehearsal — including
+the final one — reads from the replica.
+
+Verify the replica against the export rather than assuming: compare scalar
+columns directly, and compare `roll_data` as `jsonb`, never as text. `jsonb`
+normalises key order and whitespace, so text comparison reports every row as
+different when nothing is wrong.
+
 One further hazard is worth knowing even though the script works around it: a
 `pg_dump` newer than the target writes `SET` parameters the target rejects
 (`pg_dump` 17 emits `transaction_timeout`, which PostgreSQL 16 refuses), and a
