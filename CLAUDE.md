@@ -17,7 +17,7 @@ Repository tests need a real PostgreSQL and skip unless `TEST_DATABASE_URL` is s
 
 ## Architecture
 
-Eradice is a dice roller web app built with Next.js 14 (Pages Router) and TypeScript. It builds as a Node server (`output: 'standalone'`), serves its own API under `pages/api/`, and stores room state in PostgreSQL. It ships as a container image and runs on a private Kubernetes cluster behind Cloudflare Access.
+Eradice is a dice roller web app built with Next.js 15 (Pages Router) and TypeScript. It builds as a Node server (`output: 'standalone'`), serves its own API under `pages/api/`, and stores room state in PostgreSQL. It ships as a container image and runs on a private Kubernetes cluster behind Cloudflare Access.
 
 **Server layering**: route handlers in `pages/api/` parse input with `lib/validation.ts`, resolve identity through `lib/api.ts` (which wraps `lib/identity.ts`), and reach the database only through `lib/repository.ts`. Add SQL to the repository rather than to a route.
 

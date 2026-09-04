@@ -14,7 +14,7 @@ A dice roller for the **Era** tabletop RPG setting, built with Next.js and React
 
 ## Tech Stack
 
-- **Next.js 14** (Pages Router) - React framework, built as a `standalone` server
+- **Next.js 15** (Pages Router) - React framework, built as a `standalone` server
 - **React 18** - UI library
 - **CSS Modules** - Scoped styling
 - **random-js** - Cryptographically secure random number generation
@@ -149,6 +149,21 @@ database is pointed at them, so the default run stays hermetic:
 ```bash
 TEST_DATABASE_URL=postgresql://postgres:test@127.0.0.1:55432/eradice yarn test
 ```
+
+### Dependency overrides
+
+`package.json` carries a `resolutions` block that forces transitive dependencies
+past published security advisories. Most entries exist because a parent pins an
+exact version that predates a fix — `next` pins `postcss` to `8.4.31`, for
+instance — so the only way to take the patch is to override it here.
+
+Entries are scoped to a requested range (`js-yaml@^3.13.1`) wherever two majors
+coexist, so each line is bumped within itself rather than across a breaking
+change. The four `@opentelemetry/*` packages are pinned as a set because OTel
+releases them in lockstep and a partial bump leaves them mismatched.
+
+Re-check the block after any dependency upgrade: an override that is no longer
+needed should be removed rather than left to silently hold a package back.
 
 ## Usage
 
