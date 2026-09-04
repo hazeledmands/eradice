@@ -39,3 +39,10 @@ next-env.d.ts
 
 # QA screenshots
 *.png
+
+# beads issue tracker (removed; keep its daemon from re-adding state)
+.beads/
+
+# Supabase export (real player data — never commit)
+supabase-data.sql
+*.supabase.json

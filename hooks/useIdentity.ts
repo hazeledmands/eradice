@@ -1,57 +1,46 @@
 import { useState, useEffect } from 'react';
-import { supabase, supabaseEnabled } from '../lib/supabase';
+import { api, ApiError } from '../lib/apiClient';
 
+/**
+ * The signed-in user's id.
+ *
+ * Was Supabase anonymous auth, which minted a UUID per browser and kept it in
+ * localStorage — so the same person on a second device was a different user.
+ * It is now the Cloudflare Access subject, which is stable across devices and
+ * browsers, and is established before the request ever reaches the app.
+ *
+ * There is no sign-in flow to run here as a result: Access has already
+ * happened by the time this code executes, so this only reads back who the
+ * server says we are.
+ */
 interface Identity {
   userId: string | null;
   isReady: boolean;
 }
 
 export function useIdentity(): Identity {
-  const [identity, setIdentity] = useState<Identity>({
-    userId: null,
-    isReady: !supabaseEnabled,
-  });
+  const [identity, setIdentity] = useState<Identity>({ userId: null, isReady: false });
 
   useEffect(() => {
-    if (!supabase || !supabaseEnabled) return;
-
     let cancelled = false;
 
-    async function init() {
-      if (!supabase) return;
-      // Check for existing session first (reads from localStorage cache — fast)
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        if (!cancelled) setIdentity({ userId: session.user.id, isReady: true });
-        return;
-      }
-      // No session — sign in anonymously
-      try {
-        const { data, error } = await supabase.auth.signInAnonymously();
-        if (!cancelled) {
-          if (error || !data.user) {
-            // Anonymous auth not enabled or failed — degrade gracefully
-            setIdentity({ userId: null, isReady: true });
-          } else {
-            setIdentity({ userId: data.user.id, isReady: true });
-          }
-        }
-      } catch {
+    api
+      .get<{ userId: string }>('/api/me')
+      .then(({ userId }) => {
+        if (!cancelled) setIdentity({ userId, isReady: true });
+      })
+      .catch((err: ApiError) => {
+        // Degrade the same way the Supabase version did rather than blocking
+        // the UI: solo rolling still works without an identity. A 401 here
+        // means the Access session lapsed, and the next mutation surfaces it.
         if (!cancelled) setIdentity({ userId: null, isReady: true });
-      }
-    }
-
-    init();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!cancelled) {
-        setIdentity({ userId: session?.user?.id ?? null, isReady: true });
-      }
-    });
+        if (!(err instanceof ApiError) || !err.isUnauthorized) {
+          console.error(`could not load identity: ${err.message}`);
+        }
+      });
 
     return () => {
       cancelled = true;
-      subscription.unsubscribe();
     };
   }, []);
 

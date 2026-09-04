@@ -1,11 +1,22 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { supabase, supabaseEnabled } from '../lib/supabase';
+import { api, ApiError } from '../lib/apiClient';
 import { generateSlug } from '../lib/slug';
-import { getBackoffDelay } from '../lib/backoff';
 import { useIdentity } from './useIdentity';
 import { withAsyncSpan } from '../lib/tracing';
 import type { Roll, RoomRoll, RollVisibility } from '../dice/types';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+
+/**
+ * Shared-room state.
+ *
+ * Was a Supabase Realtime channel carrying postgres_changes plus presence;
+ * it is now an EventSource against `/api/rooms/:id/stream` and ordinary POSTs
+ * for mutations. The public shape of this hook is unchanged so the components
+ * above it did not have to move.
+ *
+ * Two things the browser used to do are gone because the server does them now:
+ * reconnect backoff (EventSource reconnects on its own) and presence tracking
+ * (the stream heartbeats it).
+ */
 
 const ROOM_ROLLS_PAGE_SIZE = 10;
 const MAX_LOADED_ROOM_ROLLS = 30;
@@ -20,10 +31,19 @@ export interface PresenceUser {
   online_at: string;
 }
 
+/** A roll as the API returns it, carrying the paging cursor. */
+type ApiRoll = RoomRoll & { _cursor: string };
+
+interface RollsResponse {
+  rolls: ApiRoll[];
+  hasMore: boolean;
+}
+
+const cursorOf = (roll: RoomRoll): string | null =>
+  (roll as ApiRoll)._cursor ?? null;
+
 export function useRoom() {
   const { userId, isReady: identityReady } = useIdentity();
-  const userIdRef = useRef<string | null>(null);
-  useEffect(() => { userIdRef.current = userId; }, [userId]);
   const [room, setRoom] = useState<RoomState | null>(null);
   const [roomRolls, setRoomRolls] = useState<RoomRoll[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -34,382 +54,255 @@ export function useRoom() {
   const [hasNewerRolls, setHasNewerRolls] = useState(false);
   const [isLoadingOlderRolls, setIsLoadingOlderRolls] = useState(false);
   const [isLoadingNewerRolls, setIsLoadingNewerRolls] = useState(false);
-  const channelRef = useRef<RealtimeChannel | null>(null);
+
+  const sourceRef = useRef<EventSource | null>(null);
   const joinOpRef = useRef(0);
   const roomRef = useRef<RoomState | null>(null);
   const nicknameRef = useRef<string>('');
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reconnectAttemptRef = useRef(0);
-  const oldestLoadedCreatedAtRef = useRef<string | null>(null);
-  const newestLoadedCreatedAtRef = useRef<string | null>(null);
+  const oldestCursorRef = useRef<string | null>(null);
+  const newestCursorRef = useRef<string | null>(null);
 
   const cleanup = useCallback(() => {
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-      reconnectTimerRef.current = null;
-    }
-    if (channelRef.current && supabase) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
+    if (sourceRef.current) {
+      sourceRef.current.close();
+      sourceRef.current = null;
     }
     setIsConnected(false);
     setPresenceUsers([]);
   }, []);
 
-  const getRollCursor = useCallback((roll: RoomRoll): string => ((roll as RoomRoll & { _createdAt?: string })._createdAt ?? roll.date), []);
+  /** Applies a page of rolls, keeping the loaded window bounded at both ends. */
+  const applyPage = useCallback(
+    (incoming: ApiRoll[], edge: 'older' | 'newer') => {
+      setRoomRolls((prev) => {
+        const existing = new Set(prev.map((r) => r.id));
+        const deduped = incoming.filter((r) => !existing.has(r.id));
+        if (deduped.length === 0) return prev;
 
-  const mapRoomRows = useCallback((rows: Array<{
-    roll_data: Roll;
-    user_nickname: string;
-    visibility?: string;
-    is_revealed?: boolean;
-    user_id?: string;
-    created_at?: string;
-  }>): RoomRoll[] => rows.map((row) => ({
-    ...(row.roll_data as Roll),
-    nickname: row.user_nickname,
-    isLocal: !!userIdRef.current && row.user_id === userIdRef.current,
-    shouldAnimate: false,
-    visibility: (row.visibility as RollVisibility) || 'shared',
-    isRevealed: row.is_revealed || false,
-    _createdAt: row.created_at,
-  } as RoomRoll)), []);
+        const next = edge === 'older' ? [...deduped, ...prev] : [...prev, ...deduped];
+
+        if (next.length <= MAX_LOADED_ROOM_ROLLS) {
+          oldestCursorRef.current = cursorOf(next[0]) ?? oldestCursorRef.current;
+          newestCursorRef.current = cursorOf(next[next.length - 1]) ?? newestCursorRef.current;
+          return next;
+        }
+
+        // Trim from the far end so the direction being scrolled stays loaded,
+        // and flag that there is now more to fetch back the other way.
+        const trimmed =
+          edge === 'older'
+            ? next.slice(0, MAX_LOADED_ROOM_ROLLS)
+            : next.slice(next.length - MAX_LOADED_ROOM_ROLLS);
+
+        oldestCursorRef.current = cursorOf(trimmed[0]) ?? oldestCursorRef.current;
+        newestCursorRef.current =
+          cursorOf(trimmed[trimmed.length - 1]) ?? newestCursorRef.current;
+
+        if (edge === 'older') setHasNewerRolls(true);
+        else setHasOlderRolls(true);
+        return trimmed;
+      });
+    },
+    []
+  );
 
   const fetchRecentRolls = useCallback(async (roomId: string) => {
-    if (!supabase) return;
-    const sb = supabase;
     return withAsyncSpan('room.fetch_recent_rolls', { 'room.id': roomId }, async () => {
-      const { data: historyRows } = await sb
-        .from('room_rolls')
-        .select('*')
-        .eq('room_id', roomId)
-        .order('created_at', { ascending: false })
-        .limit(ROOM_ROLLS_PAGE_SIZE);
+      const { rolls, hasMore } = await api.get<RollsResponse>(
+        `/api/rooms/${roomId}/rolls?limit=${ROOM_ROLLS_PAGE_SIZE}`
+      );
 
-      const rows = historyRows ?? [];
-      if (rows.length === 0) {
-        oldestLoadedCreatedAtRef.current = null;
-        newestLoadedCreatedAtRef.current = null;
+      if (rolls.length === 0) {
+        oldestCursorRef.current = null;
+        newestCursorRef.current = null;
         setRoomRolls([]);
         setHasOlderRolls(false);
         setHasNewerRolls(false);
         return;
       }
 
-      oldestLoadedCreatedAtRef.current = rows[rows.length - 1]?.created_at ?? null;
-      newestLoadedCreatedAtRef.current = rows[0]?.created_at ?? null;
-
-      const history = mapRoomRows(rows).reverse();
-      setRoomRolls(history);
-      setHasOlderRolls(rows.length === ROOM_ROLLS_PAGE_SIZE);
+      oldestCursorRef.current = rolls[0]._cursor;
+      newestCursorRef.current = rolls[rolls.length - 1]._cursor;
+      setRoomRolls(rolls);
+      setHasOlderRolls(hasMore);
       setHasNewerRolls(false);
     });
-  }, [mapRoomRows]);
+  }, []);
 
   const loadOlderRolls = useCallback(async () => {
-    if (!supabase || !roomRef.current || !oldestLoadedCreatedAtRef.current || isLoadingOlderRolls || !hasOlderRolls) {
-      return;
-    }
+    const current = roomRef.current;
+    if (!current || !oldestCursorRef.current || isLoadingOlderRolls || !hasOlderRolls) return;
 
     setIsLoadingOlderRolls(true);
-    const sb = supabase;
-    const roomId = roomRef.current.id;
-
     try {
-      const { data: olderRows } = await sb
-        .from('room_rolls')
-        .select('*')
-        .eq('room_id', roomId)
-        .lt('created_at', oldestLoadedCreatedAtRef.current)
-        .order('created_at', { ascending: false })
-        .limit(ROOM_ROLLS_PAGE_SIZE);
-
-      const rows = olderRows ?? [];
-      if (rows.length === 0) {
+      const { rolls, hasMore } = await api.get<RollsResponse>(
+        `/api/rooms/${current.id}/rolls?before=${oldestCursorRef.current}&limit=${ROOM_ROLLS_PAGE_SIZE}`
+      );
+      if (rolls.length === 0) {
         setHasOlderRolls(false);
         return;
       }
-
-      oldestLoadedCreatedAtRef.current = rows[rows.length - 1]?.created_at ?? oldestLoadedCreatedAtRef.current;
-      const history = mapRoomRows(rows).reverse();
-      setRoomRolls((prev) => {
-        const existing = new Set(prev.map((r) => r.id));
-        const dedupedHistory = history.filter((r) => !existing.has(r.id));
-        const next = [...dedupedHistory, ...prev];
-
-        if (next.length <= MAX_LOADED_ROOM_ROLLS) {
-          newestLoadedCreatedAtRef.current = next[next.length - 1] ? getRollCursor(next[next.length - 1]) : newestLoadedCreatedAtRef.current;
-          return next;
-        }
-
-        const trimmed = next.slice(0, MAX_LOADED_ROOM_ROLLS);
-        const newestLoadedRoll = trimmed[trimmed.length - 1];
-        newestLoadedCreatedAtRef.current = newestLoadedRoll ? getRollCursor(newestLoadedRoll) : newestLoadedCreatedAtRef.current;
-        setHasNewerRolls(true);
-        return trimmed;
-      });
-
-      if (rows.length < ROOM_ROLLS_PAGE_SIZE) {
-        setHasOlderRolls(false);
-      }
+      applyPage(rolls, 'older');
+      if (!hasMore) setHasOlderRolls(false);
+    } catch (err) {
+      console.error(`could not load older rolls: ${(err as Error).message}`);
     } finally {
       setIsLoadingOlderRolls(false);
     }
-  }, [getRollCursor, hasOlderRolls, isLoadingOlderRolls, mapRoomRows]);
+  }, [applyPage, hasOlderRolls, isLoadingOlderRolls]);
 
   const loadNewerRolls = useCallback(async () => {
-    if (!supabase || !roomRef.current || !newestLoadedCreatedAtRef.current || isLoadingNewerRolls || !hasNewerRolls) {
-      return;
-    }
+    const current = roomRef.current;
+    if (!current || !newestCursorRef.current || isLoadingNewerRolls || !hasNewerRolls) return;
 
     setIsLoadingNewerRolls(true);
-    const sb = supabase;
-    const roomId = roomRef.current.id;
-
     try {
-      const { data: newerRows } = await sb
-        .from('room_rolls')
-        .select('*')
-        .eq('room_id', roomId)
-        .gt('created_at', newestLoadedCreatedAtRef.current)
-        .order('created_at', { ascending: true })
-        .limit(ROOM_ROLLS_PAGE_SIZE);
-
-      const rows = newerRows ?? [];
-      if (rows.length === 0) {
+      const { rolls, hasMore } = await api.get<RollsResponse>(
+        `/api/rooms/${current.id}/rolls?after=${newestCursorRef.current}&limit=${ROOM_ROLLS_PAGE_SIZE}`
+      );
+      if (rolls.length === 0) {
         setHasNewerRolls(false);
         return;
       }
-
-      newestLoadedCreatedAtRef.current = rows[rows.length - 1]?.created_at ?? newestLoadedCreatedAtRef.current;
-      const newerHistory = mapRoomRows(rows);
-      setRoomRolls((prev) => {
-        const existing = new Set(prev.map((r) => r.id));
-        const dedupedNewer = newerHistory.filter((r) => !existing.has(r.id));
-        const next = [...prev, ...dedupedNewer];
-
-        if (next.length <= MAX_LOADED_ROOM_ROLLS) {
-          oldestLoadedCreatedAtRef.current = next[0] ? getRollCursor(next[0]) : oldestLoadedCreatedAtRef.current;
-          return next;
-        }
-
-        const trimmed = next.slice(next.length - MAX_LOADED_ROOM_ROLLS);
-        const oldestLoadedRoll = trimmed[0];
-        oldestLoadedCreatedAtRef.current = oldestLoadedRoll ? getRollCursor(oldestLoadedRoll) : oldestLoadedCreatedAtRef.current;
-        setHasOlderRolls(true);
-        return trimmed;
-      });
-
-      if (rows.length < ROOM_ROLLS_PAGE_SIZE) {
-        setHasNewerRolls(false);
-      }
+      applyPage(rolls, 'newer');
+      if (!hasMore) setHasNewerRolls(false);
+    } catch (err) {
+      console.error(`could not load newer rolls: ${(err as Error).message}`);
     } finally {
       setIsLoadingNewerRolls(false);
     }
-  }, [getRollCursor, hasNewerRolls, isLoadingNewerRolls, mapRoomRows]);
+  }, [applyPage, hasNewerRolls, isLoadingNewerRolls]);
 
   const snapToRecentRolls = useCallback(async () => {
-    const currentRoom = roomRef.current;
-    if (!currentRoom || isLoadingOlderRolls || isLoadingNewerRolls) return;
-    await fetchRecentRolls(currentRoom.id);
+    const current = roomRef.current;
+    if (!current || isLoadingOlderRolls || isLoadingNewerRolls) return;
+    await fetchRecentRolls(current.id);
   }, [fetchRecentRolls, isLoadingNewerRolls, isLoadingOlderRolls]);
 
-  const subscribeToRoom = useCallback((roomData: RoomState, currentNickname: string) => {
-    if (!supabase) return;
+  /**
+   * Opens the event stream.
+   *
+   * No manual reconnect loop: EventSource retries on its own, and `onopen`
+   * re-syncs history so anything missed while disconnected is picked up. That
+   * replaces the hand-rolled backoff the Supabase channel needed.
+   */
+  const subscribeToRoom = useCallback(
+    (roomData: RoomState, nickname: string) => {
+      const source = new EventSource(
+        `/api/rooms/${roomData.id}/stream?nickname=${encodeURIComponent(nickname)}`
+      );
 
-    const roomId = roomData.id;
-    const channel = supabase
-      .channel(`room:${roomId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'room_rolls',
-        },
-        (payload) => {
-          const row = payload.new as {
-            room_id: string;
-            roll_id: number;
-            user_nickname: string;
-            roll_data: Roll;
-            visibility?: string;
-            is_revealed?: boolean;
-            user_id?: string;
-            created_at?: string;
-          };
-          if (row.room_id !== roomId) return;
-          const incoming: RoomRoll = {
-            ...row.roll_data,
-            nickname: row.user_nickname,
-            isLocal: !!userIdRef.current && row.user_id === userIdRef.current,
-            shouldAnimate: true,
-            visibility: (row.visibility as RollVisibility) || 'shared',
-            isRevealed: row.is_revealed || false,
-            _createdAt: row.created_at,
-          } as RoomRoll;
-          setRoomRolls((prev) => {
-            if (prev.some((r) => r.id === incoming.id)) return prev;
-            const next = [...prev, incoming];
-            newestLoadedCreatedAtRef.current = row.created_at ?? newestLoadedCreatedAtRef.current;
-            if (next.length <= MAX_LOADED_ROOM_ROLLS) return next;
-            setHasOlderRolls(true);
-            return next.slice(next.length - MAX_LOADED_ROOM_ROLLS);
-          });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'room_rolls',
-        },
-        (payload) => {
-          const row = payload.new as {
-            room_id: string;
-            roll_id: number;
-            is_revealed?: boolean;
-            roll_data?: Roll;
-          };
-          if (row.room_id !== roomId) return;
-          setRoomRolls((prev) =>
-            prev.map((r) => {
-              if (r.id !== row.roll_id) return r;
-              if (row.roll_data && row.roll_data.dice.length !== r.dice.length) {
-                return { ...r, dice: row.roll_data.dice, shouldAnimate: true };
-              }
-              const isRevealed = row.is_revealed || false;
-              if (isRevealed === (r.isRevealed || false)) {
-                return r;
-              }
-              return { ...r, isRevealed, shouldAnimate: isRevealed ? false : r.shouldAnimate };
-            })
-          );
-        }
-      )
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState<PresenceUser>();
-        const users: PresenceUser[] = [];
-        for (const key of Object.keys(state)) {
-          for (const presence of state[key]) {
-            users.push({
-              nickname: presence.nickname,
-              online_at: presence.online_at,
-            });
-          }
-        }
-        setPresenceUsers(users);
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          setIsConnected(true);
-          reconnectAttemptRef.current = 0;
-          await channel.track({
-            nickname: currentNickname,
-            online_at: new Date().toISOString(),
-          });
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          setIsConnected(false);
-          if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-          const delay = getBackoffDelay(reconnectAttemptRef.current);
-          reconnectAttemptRef.current++;
-          reconnectTimerRef.current = setTimeout(() => {
-            const currentRoom = roomRef.current;
-            if (currentRoom && supabase) {
-              if (channelRef.current) {
-                supabase.removeChannel(channelRef.current);
-                channelRef.current = null;
-              }
-              fetchRecentRolls(currentRoom.id).then(() => {
-                subscribeToRoom(currentRoom, nicknameRef.current);
-              });
-            }
-          }, delay);
-        } else if (status === 'CLOSED') {
-          setIsConnected(false);
+      source.addEventListener('open', () => {
+        // Only re-sync on a *re*-connection; the initial fetch already ran.
+        if (sourceRef.current === source && isConnected) {
+          void fetchRecentRolls(roomData.id);
         }
       });
 
-    channelRef.current = channel;
-  }, [fetchRecentRolls]); // eslint-disable-line react-hooks/exhaustive-deps
+      source.addEventListener('ready', () => setIsConnected(true));
 
-  const joinRoom = useCallback(async (slug: string) => {
-    if (!supabase || !supabaseEnabled) {
-      setError('Supabase is not configured');
-      return;
-    }
+      source.addEventListener('roll', (event) => {
+        const incoming = JSON.parse((event as MessageEvent).data) as ApiRoll;
+        setRoomRolls((prev) => {
+          if (prev.some((r) => r.id === incoming.id)) return prev;
+          const next = [...prev, incoming];
+          newestCursorRef.current = incoming._cursor;
+          if (next.length <= MAX_LOADED_ROOM_ROLLS) return next;
+          setHasOlderRolls(true);
+          return next.slice(next.length - MAX_LOADED_ROOM_ROLLS);
+        });
+      });
 
-    const sb = supabase;
-    return withAsyncSpan('room.join', { 'room.slug': slug }, async (span) => {
-      const opId = ++joinOpRef.current;
-      const isStale = () => opId !== joinOpRef.current;
+      source.addEventListener('roll_updated', (event) => {
+        const incoming = JSON.parse((event as MessageEvent).data) as ApiRoll;
+        setRoomRolls((prev) =>
+          prev.map((r) => {
+            if (r.id !== incoming.id) return r;
+            // A CP spend changes the dice; animate those. A reveal only flips
+            // a flag and must not restart the animation.
+            if (incoming.dice.length !== r.dice.length) {
+              return { ...r, dice: incoming.dice, shouldAnimate: true };
+            }
+            if ((incoming.isRevealed ?? false) === (r.isRevealed ?? false)) return r;
+            return { ...r, isRevealed: incoming.isRevealed ?? false, shouldAnimate: false };
+          })
+        );
+      });
 
-      setError(null);
-      setIsJoining(true);
-      cleanup();
+      source.addEventListener('presence', (event) => {
+        setPresenceUsers(JSON.parse((event as MessageEvent).data) as PresenceUser[]);
+      });
 
-      try {
-        let roomData: RoomState;
-        const { data: existing } = await sb
-          .from('rooms')
-          .select('id, slug')
-          .eq('slug', slug)
-          .maybeSingle();
+      // Comments live in useRollComments, but the room has exactly one stream.
+      // Relaying them on window lets that hook stay independent without
+      // opening a second EventSource for the same room.
+      const relayComment = (type: string) => (event: Event) => {
+        const data = JSON.parse((event as MessageEvent).data);
+        window.dispatchEvent(
+          new CustomEvent('eradice:comment', {
+            detail:
+              type === 'comment_deleted'
+                ? { type, id: data.id as string }
+                : { type, comment: data },
+          })
+        );
+      };
+      source.addEventListener('comment', relayComment('comment'));
+      source.addEventListener('comment_updated', relayComment('comment_updated'));
+      source.addEventListener('comment_deleted', relayComment('comment_deleted'));
 
-        if (isStale()) return;
+      source.addEventListener('error', () => {
+        // EventSource sets readyState to CONNECTING while it retries and CLOSED
+        // only when it has given up.
+        setIsConnected(false);
+        if (source.readyState === EventSource.CLOSED) {
+          setError('Lost connection to the room');
+        }
+      });
 
-        if (existing) {
-          span.setAttribute('room.created', false);
-          roomData = existing;
-        } else {
-          span.setAttribute('room.created', true);
-          const { data: created, error: createErr } = await sb
-            .from('rooms')
-            .insert({ slug })
-            .select('id, slug')
-            .single();
+      sourceRef.current = source;
+    },
+    [fetchRecentRolls, isConnected]
+  );
 
+  const joinRoom = useCallback(
+    async (slug: string) => {
+      return withAsyncSpan('room.join', { 'room.slug': slug }, async (span) => {
+        const opId = ++joinOpRef.current;
+        const isStale = () => opId !== joinOpRef.current;
+
+        setError(null);
+        setIsJoining(true);
+        cleanup();
+
+        try {
+          const { room: roomData } = await api.post<{ room: RoomState }>('/api/rooms', { slug });
           if (isStale()) return;
 
-          if (createErr || !created) {
-            const { data: retry } = await sb
-              .from('rooms')
-              .select('id, slug')
-              .eq('slug', slug)
-              .maybeSingle();
-            if (isStale()) return;
-            if (retry) {
-              roomData = retry;
-            } else {
-              setError('Failed to create room');
-              return;
-            }
-          } else {
-            roomData = created;
+          span.setAttribute('room.id', roomData.id);
+          setRoom(roomData);
+          roomRef.current = roomData;
+
+          await fetchRecentRolls(roomData.id);
+          if (isStale()) return;
+
+          subscribeToRoom(roomData, nicknameRef.current);
+        } catch (err) {
+          if (!isStale()) {
+            setError(
+              err instanceof ApiError && err.isUnauthorized
+                ? 'Your session expired — reload the page'
+                : 'Failed to join room'
+            );
           }
+          span.recordException(err as Error);
+        } finally {
+          if (!isStale()) setIsJoining(false);
         }
-
-        span.setAttribute('room.id', roomData.id);
-        setRoom(roomData);
-        roomRef.current = roomData;
-
-        await fetchRecentRolls(roomData.id);
-        if (isStale()) return;
-
-        subscribeToRoom(roomData, nicknameRef.current);
-      } catch (err) {
-        if (!isStale()) {
-          setError('Failed to join room');
-        }
-        span.recordException(err as Error);
-      } finally {
-        if (!isStale()) {
-          setIsJoining(false);
-        }
-      }
-    });
-  }, [cleanup, fetchRecentRolls, subscribeToRoom]);
+      });
+    },
+    [cleanup, fetchRecentRolls, subscribeToRoom]
+  );
 
   const createRoom = useCallback(async (): Promise<string | null> => {
     const slug = generateSlug();
@@ -417,84 +310,85 @@ export function useRoom() {
     return slug;
   }, [joinRoom]);
 
-  const broadcastRoll = useCallback(async (roll: Roll, nickname: string, visibility: RollVisibility = 'shared') => {
-    if (!supabase || !room) return;
-    const sb = supabase;
-    const roomId = room.id;
+  const broadcastRoll = useCallback(
+    async (roll: Roll, nickname: string, visibility: RollVisibility = 'shared') => {
+      const current = roomRef.current;
+      if (!current) return;
 
-    return withAsyncSpan('room.broadcast_roll', {
-      'room.id': roomId,
-      'roll.notation': roll.text,
-      'roll.visibility': visibility,
-      'roll.dice_count': roll.dice.length,
-    }, async () => {
-      const localRoomRoll: RoomRoll = {
-        ...roll,
-        nickname,
-        isLocal: true,
-        shouldAnimate: true,
-        visibility,
-        isRevealed: false,
-      };
-      setRoomRolls((prev) => [...prev, localRoomRoll]);
+      return withAsyncSpan(
+        'room.broadcast_roll',
+        {
+          'room.id': current.id,
+          'roll.notation': roll.text,
+          'roll.visibility': visibility,
+          'roll.dice_count': roll.dice.length,
+        },
+        async () => {
+          // Optimistic, as before: the roll appears immediately and the stream
+          // echo is deduplicated by id.
+          setRoomRolls((prev) => [
+            ...prev,
+            { ...roll, nickname, isLocal: true, shouldAnimate: true, visibility, isRevealed: false },
+          ]);
 
-      await sb.from('room_rolls').insert({
-        room_id: roomId,
-        roll_id: roll.id,
-        user_nickname: nickname,
-        roll_data: roll,
-        visibility,
-        user_id: userIdRef.current ?? undefined,
-      });
-    });
-  }, [room]);
+          try {
+            await api.post(`/api/rooms/${current.id}/rolls`, { roll, nickname, visibility });
+          } catch (err) {
+            setRoomRolls((prev) => prev.filter((r) => r.id !== roll.id));
+            setError('Your roll could not be shared');
+            throw err;
+          }
+        }
+      );
+    },
+    []
+  );
 
   const revealRoll = useCallback(async (rollId: number) => {
-    if (!supabase || !room) return;
-    const sb = supabase;
-    const roomId = room.id;
+    const current = roomRef.current;
+    if (!current) return;
 
-    return withAsyncSpan('room.reveal_roll', { 'room.id': roomId, 'roll.id': rollId }, async () => {
+    return withAsyncSpan('room.reveal_roll', { 'room.id': current.id, 'roll.id': rollId }, async () => {
       setRoomRolls((prev) =>
         prev.map((r) => (r.id === rollId ? { ...r, isRevealed: true, shouldAnimate: false } : r))
       );
-
-      await sb
-        .from('room_rolls')
-        .update({ is_revealed: true })
-        .eq('room_id', roomId)
-        .eq('roll_id', rollId);
+      try {
+        await api.post(`/api/rooms/${current.id}/rolls/${rollId}/reveal`);
+      } catch (err) {
+        setRoomRolls((prev) =>
+          prev.map((r) => (r.id === rollId ? { ...r, isRevealed: false } : r))
+        );
+        throw err;
+      }
     });
-  }, [room]);
+  }, []);
 
   const broadcastCpSpend = useCallback(async (rollId: number, updatedRoll: Roll) => {
-    if (!supabase || !room) return;
-    const sb = supabase;
-    const roomId = room.id;
+    const current = roomRef.current;
+    if (!current) return;
 
-    return withAsyncSpan('room.broadcast_cp_spend', {
-      'room.id': roomId,
-      'roll.id': rollId,
-      'roll.dice_count': updatedRoll.dice.length,
-    }, async () => {
-      setRoomRolls((prev) =>
-        prev.map((r) => (r.id === rollId ? { ...r, dice: updatedRoll.dice, shouldAnimate: true } : r))
-      );
-
-      await sb
-        .from('room_rolls')
-        .update({ roll_data: updatedRoll })
-        .eq('room_id', roomId)
-        .eq('roll_id', rollId);
-    });
-  }, [room]);
+    return withAsyncSpan(
+      'room.broadcast_cp_spend',
+      { 'room.id': current.id, 'roll.id': rollId, 'roll.dice_count': updatedRoll.dice.length },
+      async () => {
+        setRoomRolls((prev) =>
+          prev.map((r) => (r.id === rollId ? { ...r, dice: updatedRoll.dice, shouldAnimate: true } : r))
+        );
+        await api.post(`/api/rooms/${current.id}/rolls/${rollId}/cp`, { roll: updatedRoll });
+      }
+    );
+  }, []);
 
   const leaveRoom = useCallback(() => {
+    const current = roomRef.current;
     cleanup();
+    // Best effort: presence also ages out on its own once heartbeats stop.
+    if (current) void api.del(`/api/rooms/${current.id}/presence`).catch(() => {});
+
     setRoom(null);
     roomRef.current = null;
-    oldestLoadedCreatedAtRef.current = null;
-    newestLoadedCreatedAtRef.current = null;
+    oldestCursorRef.current = null;
+    newestCursorRef.current = null;
     setRoomRolls([]);
     setHasOlderRolls(false);
     setHasNewerRolls(false);
@@ -506,17 +400,16 @@ export function useRoom() {
 
   const updatePresenceNickname = useCallback(async (newNickname: string) => {
     nicknameRef.current = newNickname;
-    if (channelRef.current && isConnected) {
-      await channelRef.current.track({
-        nickname: newNickname,
-        online_at: new Date().toISOString(),
-      });
+    const current = roomRef.current;
+    if (!current || !isConnected) return;
+    try {
+      await api.post(`/api/rooms/${current.id}/presence`, { nickname: newNickname });
+    } catch (err) {
+      console.error(`could not update nickname: ${(err as Error).message}`);
     }
   }, [isConnected]);
 
-  useEffect(() => {
-    return () => cleanup();
-  }, [cleanup]);
+  useEffect(() => cleanup, [cleanup]);
 
   return {
     room,
@@ -526,6 +419,7 @@ export function useRoom() {
     identityReady,
     error,
     presenceUsers,
+    userId,
     createRoom,
     joinRoom,
     broadcastRoll,

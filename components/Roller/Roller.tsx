@@ -10,7 +10,6 @@ import { useRoom } from '../../hooks/useRoom';
 import { useNickname } from '../../hooks/useNickname';
 import { useIdentity } from '../../hooks/useIdentity';
 import { useRollComments } from '../../hooks/useRollComments';
-import { supabaseEnabled } from '../../lib/supabase';
 import { generateSlug } from '../../lib/slug';
 import { useTypewriter } from '../../hooks/useTypewriter';
 import { selectPrompt } from './terminalPrompts';
@@ -82,7 +81,7 @@ export default function Roller({ roomSlug, onRoomCreated, onRoomLeft }: RollerPr
   // Join room when roomSlug prop changes (skip if already in this room)
   // Gate on identityReady so userId is available before history is fetched
   useEffect(() => {
-    if (roomSlug && supabaseEnabled && room?.slug !== roomSlug && identityReady) {
+    if (roomSlug && room?.slug !== roomSlug && identityReady) {
       joinRoom(roomSlug);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -325,7 +324,7 @@ export default function Roller({ roomSlug, onRoomCreated, onRoomLeft }: RollerPr
         </div>
       </form>
 
-      {!isRoomMode && supabaseEnabled && !roomSlug && (
+      {!isRoomMode && !roomSlug && (
         <button
           type="button"
           className={styles.createRoomButton}

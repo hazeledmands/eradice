@@ -1,8 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase, supabaseEnabled } from '../lib/supabase';
+import { api } from '../lib/apiClient';
 import { withAsyncSpan } from '../lib/tracing';
 import type { RollComment } from '../dice/types';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+
+/**
+ * Comments on rolls.
+ *
+ * Unchanged in shape: private comments never leave the browser's localStorage,
+ * and public comments are shared. What changed is the transport — public
+ * comments were PostgREST writes plus a Realtime subscription, and are now
+ * ordinary requests plus the room's SSE stream, which this hook listens to
+ * through a DOM event relayed by useRoom's EventSource.
+ */
 
 const LOCAL_STORAGE_KEY = 'eradice-roll-comments';
 
@@ -47,125 +56,69 @@ function groupByRoll(comments: RollComment[]): Record<number, RollComment[]> {
 }
 
 export function useRollComments({ roomId, userId, nickname }: UseRollCommentsOptions): UseRollCommentsReturn {
-  // Local (private) comments — always from localStorage
   const [localComments, setLocalComments] = useState<RollComment[]>([]);
-  // Public comments from Supabase (room mode only)
   const [remoteComments, setRemoteComments] = useState<RollComment[]>([]);
-  const channelRef = useRef<RealtimeChannel | null>(null);
   const roomIdRef = useRef<string | undefined>(roomId);
-  const userIdRef = useRef<string | undefined>(userId);
 
   useEffect(() => { roomIdRef.current = roomId; }, [roomId]);
-  useEffect(() => { userIdRef.current = userId; }, [userId]);
 
-  // Load local comments on mount
   useEffect(() => {
     setLocalComments(loadLocalComments());
   }, []);
 
-  // Persist local comments whenever they change
   useEffect(() => {
     saveLocalComments(localComments);
   }, [localComments]);
 
-  // Room mode: fetch + subscribe to public comments
+  // Room mode: load the existing public comments, then follow the stream.
   useEffect(() => {
-    if (!roomId || !supabase || !supabaseEnabled) {
+    if (!roomId) {
       setRemoteComments([]);
       return;
     }
 
-    // Fetch existing public comments for this room
-    supabase
-      .from('roll_comments')
-      .select('*')
-      .eq('room_id', roomId)
-      .order('created_at', { ascending: true })
-      .limit(MAX_INITIAL_COMMENTS)
-      .then(({ data }) => {
-        if (!data) return;
-        const comments: RollComment[] = data.map((row) => ({
-          id: row.id,
-          rollId: row.roll_id,
-          text: row.text,
-          visibility: 'public' as const,
-          authorNickname: row.author_nickname,
-          authorId: row.author_id ?? undefined,
-          createdAt: row.created_at,
-          updatedAt: row.updated_at ?? undefined,
-        }));
-        setRemoteComments(comments);
+    let cancelled = false;
+
+    api
+      .get<{ comments: RollComment[] }>(`/api/rooms/${roomId}/comments?limit=${MAX_INITIAL_COMMENTS}`)
+      .then(({ comments }) => {
+        if (!cancelled) setRemoteComments(comments);
+      })
+      .catch((err) => console.error(`could not load comments: ${err.message}`));
+
+    // useRoom owns the EventSource; it relays comment events on window so this
+    // hook does not open a second stream for the same room.
+    const onComment = (event: Event) => {
+      const { type, comment, id } = (event as CustomEvent).detail as {
+        type: 'comment' | 'comment_updated' | 'comment_deleted';
+        comment?: RollComment;
+        id?: string;
+      };
+      if (type === 'comment_deleted') {
+        setRemoteComments((prev) => prev.filter((c) => c.id !== id));
+        return;
+      }
+      if (!comment) return;
+      setRemoteComments((prev) => {
+        const existing = prev.findIndex((c) => c.id === comment.id);
+        if (existing === -1) return [...prev, comment];
+        const next = [...prev];
+        next[existing] = comment;
+        return next;
       });
+    };
 
-    // Subscribe to realtime changes
-    const channel = supabase
-      .channel(`comments:${roomId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'roll_comments', filter: `room_id=eq.${roomId}` },
-        (payload) => {
-          const row = payload.new as {
-            id: string; room_id: string; roll_id: number; text: string;
-            author_nickname: string; author_id: string | null;
-            created_at: string; updated_at: string | null;
-          };
-          if (row.room_id !== roomIdRef.current) return;
-          const comment: RollComment = {
-            id: row.id,
-            rollId: row.roll_id,
-            text: row.text,
-            visibility: 'public',
-            authorNickname: row.author_nickname,
-            authorId: row.author_id ?? undefined,
-            createdAt: row.created_at,
-            updatedAt: row.updated_at ?? undefined,
-          };
-          setRemoteComments((prev) => {
-            if (prev.some((c) => c.id === comment.id)) return prev;
-            return [...prev, comment];
-          });
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'roll_comments', filter: `room_id=eq.${roomId}` },
-        (payload) => {
-          const row = payload.new as {
-            id: string; room_id: string; text: string; updated_at: string | null;
-          };
-          if (row.room_id !== roomIdRef.current) return;
-          setRemoteComments((prev) =>
-            prev.map((c) => c.id === row.id ? { ...c, text: row.text, updatedAt: row.updated_at ?? undefined } : c)
-          );
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'roll_comments', filter: `room_id=eq.${roomId}` },
-        (payload) => {
-          const row = payload.old as { id: string };
-          setRemoteComments((prev) => prev.filter((c) => c.id !== row.id));
-        }
-      )
-      .subscribe();
-
-    channelRef.current = channel;
-
+    window.addEventListener('eradice:comment', onComment);
     return () => {
-      if (supabase) supabase.removeChannel(channel);
-      channelRef.current = null;
+      cancelled = true;
+      window.removeEventListener('eradice:comment', onComment);
     };
   }, [roomId]);
 
-  // Merge: public remote comments + private local comments
   const commentsByRoll = (() => {
     const all = roomId
-      ? [
-          ...remoteComments,
-          ...localComments.filter((c) => c.visibility === 'private'),
-        ]
+      ? [...remoteComments, ...localComments.filter((c) => c.visibility === 'private')]
       : localComments;
-    // Sort each roll's comments by createdAt
     const grouped = groupByRoll(all);
     for (const rollId of Object.keys(grouped)) {
       grouped[Number(rollId)].sort(
@@ -188,8 +141,7 @@ export function useRollComments({ roomId, userId, nickname }: UseRollCommentsOpt
       'comment.storage': (visibility === 'private' || !roomId) ? 'local' : 'remote',
     }, async () => {
       if (visibility === 'private' || !roomId) {
-        // Private or solo — localStorage only
-        const comment: RollComment = {
+        setLocalComments((prev) => [...prev, {
           id: crypto.randomUUID(),
           rollId,
           text: text.trim(),
@@ -197,50 +149,37 @@ export function useRollComments({ roomId, userId, nickname }: UseRollCommentsOpt
           authorNickname: roomId ? nickname : 'You',
           authorId: userId,
           createdAt: new Date().toISOString(),
-        };
-        setLocalComments((prev) => [...prev, comment]);
-      } else {
-        // Public + room mode — Supabase (optimistic)
-        if (!supabase) return;
-        const sb = supabase;
-        const optimisticId = crypto.randomUUID();
-        const now = new Date().toISOString();
-        const optimistic: RollComment = {
-          id: optimisticId,
-          rollId,
-          text: text.trim(),
-          visibility: 'public',
-          authorNickname: nickname,
-          authorId: userId,
-          createdAt: now,
-        };
-        setRemoteComments((prev) => [...prev, optimistic]);
+        }]);
+        return;
+      }
 
-        const { data, error } = await sb
-          .from('roll_comments')
-          .insert({
-            room_id: roomId,
-            roll_id: rollId,
-            text: text.trim(),
-            author_nickname: nickname,
-            author_id: userId ?? null,
-          })
-          .select('id, created_at')
-          .single();
+      // Public, in a room: optimistic insert, reconciled with the server's row.
+      const optimisticId = crypto.randomUUID();
+      setRemoteComments((prev) => [...prev, {
+        id: optimisticId,
+        rollId,
+        text: text.trim(),
+        visibility: 'public',
+        authorNickname: nickname,
+        authorId: userId,
+        createdAt: new Date().toISOString(),
+      }]);
 
-        if (!error && data) {
-          // Replace optimistic with real id/timestamp
-          setRemoteComments((prev) =>
-            prev.map((c) =>
-              c.id === optimisticId
-                ? { ...c, id: data.id, createdAt: data.created_at }
-                : c
-            )
-          );
-        } else if (error) {
-          // Rollback optimistic
-          setRemoteComments((prev) => prev.filter((c) => c.id !== optimisticId));
-        }
+      try {
+        const { comment } = await api.post<{ comment: RollComment }>(
+          `/api/rooms/${roomId}/comments`,
+          { rollId, text: text.trim(), nickname }
+        );
+        setRemoteComments((prev) => {
+          // The stream echo may already have added the real row.
+          const withoutOptimistic = prev.filter((c) => c.id !== optimisticId);
+          return withoutOptimistic.some((c) => c.id === comment.id)
+            ? withoutOptimistic
+            : [...withoutOptimistic, comment];
+        });
+      } catch (err) {
+        setRemoteComments((prev) => prev.filter((c) => c.id !== optimisticId));
+        throw err;
       }
     });
   }, [roomId, userId, nickname]);
@@ -253,28 +192,29 @@ export function useRollComments({ roomId, userId, nickname }: UseRollCommentsOpt
       'comment.storage': isLocal ? 'local' : 'remote',
       'comment.text_length': newText.trim().length,
     }, async () => {
+      const now = new Date().toISOString();
       if (isLocal) {
-        const now = new Date().toISOString();
         setLocalComments((prev) =>
           prev.map((c) => c.id === id ? { ...c, text: newText.trim(), updatedAt: now } : c)
         );
         return;
       }
 
-      // Remote public comment
-      if (!supabase || !roomId) return;
-      const sb = supabase;
-      const now = new Date().toISOString();
+      if (!roomId) return;
+      const previous = remoteComments.find((c) => c.id === id);
       setRemoteComments((prev) =>
         prev.map((c) => c.id === id ? { ...c, text: newText.trim(), updatedAt: now } : c)
       );
-      await sb
-        .from('roll_comments')
-        .update({ text: newText.trim(), updated_at: now })
-        .eq('id', id)
-        .eq('room_id', roomId);
+      try {
+        await api.patch(`/api/rooms/${roomId}/comments/${id}`, { text: newText.trim() });
+      } catch (err) {
+        if (previous) {
+          setRemoteComments((prev) => prev.map((c) => (c.id === id ? previous : c)));
+        }
+        throw err;
+      }
     });
-  }, [localComments, roomId]);
+  }, [localComments, remoteComments, roomId]);
 
   const deleteComment = useCallback(async (id: string) => {
     const isLocal = localComments.some((c) => c.id === id);
@@ -286,17 +226,17 @@ export function useRollComments({ roomId, userId, nickname }: UseRollCommentsOpt
         return;
       }
 
-      // Remote public comment
-      if (!supabase || !roomId) return;
-      const sb = supabase;
+      if (!roomId) return;
+      const previous = remoteComments.find((c) => c.id === id);
       setRemoteComments((prev) => prev.filter((c) => c.id !== id));
-      await sb
-        .from('roll_comments')
-        .delete()
-        .eq('id', id)
-        .eq('room_id', roomId);
+      try {
+        await api.del(`/api/rooms/${roomId}/comments/${id}`);
+      } catch (err) {
+        if (previous) setRemoteComments((prev) => [...prev, previous]);
+        throw err;
+      }
     });
-  }, [localComments, roomId]);
+  }, [localComments, remoteComments, roomId]);
 
   return { commentsByRoll, addComment, editComment, deleteComment };
 }
