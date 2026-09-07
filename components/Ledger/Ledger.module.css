@@ -2,6 +2,41 @@
   margin-top: 3rem;
 }
 
+.searchRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.searchLabel {
+  font-family: var(--font-rajdhani), sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(0, 255, 255, 0.7);
+}
+
+.searchInput {
+  font-family: var(--font-rajdhani), sans-serif;
+  font-size: 0.95rem;
+  background: rgba(0, 10, 20, 0.7);
+  border: 1px solid rgba(0, 255, 255, 0.25);
+  border-radius: 6px;
+  color: rgba(0, 255, 255, 0.9);
+  padding: 0.5rem 0.65rem;
+}
+
+.searchInput::placeholder {
+  color: rgba(0, 255, 255, 0.35);
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: rgba(0, 255, 255, 0.55);
+  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.12);
+}
+
 .Ledger :global(ul) {
   list-style: none;
   padding: 0;

@@ -40,9 +40,13 @@ export default function Ledger({
   const bottomTriggerRef = useRef<HTMLDivElement | null>(null);
   const jumpThresholdRef = useRef<HTMLLIElement | null>(null);
   const [showJumpToRecent, setShowJumpToRecent] = useState(false);
+  const [searchText, setSearchText] = useState('');
+
+  const normalizedSearchText = searchText.trim().toLowerCase();
+  const isSearching = normalizedSearchText.length > 0;
 
   useEffect(() => {
-    if (!onLoadMore || !hasMore || !bottomTriggerRef.current) return;
+    if (isSearching || !onLoadMore || !hasMore || !bottomTriggerRef.current) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -59,10 +63,10 @@ export default function Ledger({
 
     observer.observe(bottomTriggerRef.current);
     return () => observer.disconnect();
-  }, [hasMore, isLoadingMore, onLoadMore]);
+  }, [hasMore, isLoadingMore, isSearching, onLoadMore]);
 
   useEffect(() => {
-    if (!topTriggerRef.current || (!hasNewer && !onSnapToRecent)) return;
+    if (isSearching || !topTriggerRef.current || (!hasNewer && !onSnapToRecent)) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -86,7 +90,7 @@ export default function Ledger({
 
     observer.observe(topTriggerRef.current);
     return () => observer.disconnect();
-  }, [hasNewer, isLoadingNewer, onLoadNewer, onSnapToRecent]);
+  }, [hasNewer, isLoadingNewer, isSearching, onLoadNewer, onSnapToRecent]);
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -105,12 +109,21 @@ export default function Ledger({
     return true;
   }), [rolls, isRoomMode]);
 
-  const mostRecentCritId = useMemo(() => visibleRolls.find((roll) =>
+  const filteredRolls = useMemo(() => {
+    if (!normalizedSearchText) return visibleRolls;
+    return visibleRolls.filter((roll) => {
+      if (roll.text.toLowerCase().includes(normalizedSearchText)) return true;
+      if (isRoomMode && isRoomRoll(roll) && roll.nickname.toLowerCase().includes(normalizedSearchText)) return true;
+      return false;
+    });
+  }, [visibleRolls, normalizedSearchText, isRoomMode]);
+
+  const mostRecentCritId = useMemo(() => filteredRolls.find((roll) =>
     roll.dice?.some((die) => die.chainDepth != null && die.chainDepth >= 2)
-  )?.id, [visibleRolls]);
+  )?.id, [filteredRolls]);
 
   useEffect(() => {
-    if (!isRoomMode || !jumpThresholdRef.current || visibleRolls.length <= 30) {
+    if (!isRoomMode || isSearching || !jumpThresholdRef.current || filteredRolls.length <= 30) {
       setShowJumpToRecent(false);
       return;
     }
@@ -130,7 +143,7 @@ export default function Ledger({
 
     observer.observe(jumpThresholdRef.current);
     return () => observer.disconnect();
-  }, [isRoomMode, visibleRolls.length]);
+  }, [isRoomMode, isSearching, filteredRolls.length]);
 
   const handleJumpToRecent = () => {
     if (onSnapToRecent) {
@@ -141,10 +154,22 @@ export default function Ledger({
 
   return (
     <div className={styles.Ledger}>
+      <div className={styles.searchRow}>
+        <label htmlFor="roll-history-search" className={styles.searchLabel}>Search past rolls</label>
+        <input
+          id="roll-history-search"
+          type="search"
+          value={searchText}
+          onChange={(event) => setSearchText(event.target.value)}
+          className={styles.searchInput}
+          placeholder="e.g. 3d+2 or player name"
+        />
+      </div>
+
       {isRoomMode && <div ref={topTriggerRef} className={styles.loadTrigger} aria-hidden="true" />}
 
       <ul>
-        {visibleRolls.map((roll, index) => {
+        {filteredRolls.map((roll, index) => {
           const rr = isRoomMode && isRoomRoll(roll) ? roll : null;
           const visibility = rr?.visibility || 'shared';
           const isRevealed = rr?.isRevealed || false;
@@ -226,7 +251,7 @@ export default function Ledger({
 
       {isRoomMode && (
         <>
-          {showJumpToRecent && onSnapToRecent && (
+          {!isSearching && showJumpToRecent && onSnapToRecent && (
             <button
               type="button"
               className={styles.jumpToRecentButton}
@@ -235,12 +260,15 @@ export default function Ledger({
               🚀 Back to Recent
             </button>
           )}
-          <div ref={bottomTriggerRef} className={styles.loadTrigger} aria-hidden="true" />
-          {(isLoadingMore || isLoadingNewer) && <div className={styles.loadStatus}>Loading rolls…</div>}
-          {!hasMore && visibleRolls.length > 0 && (
+          {!isSearching && <div ref={bottomTriggerRef} className={styles.loadTrigger} aria-hidden="true" />}
+          {!isSearching && (isLoadingMore || isLoadingNewer) && <div className={styles.loadStatus}>Loading rolls…</div>}
+          {!isSearching && !hasMore && filteredRolls.length > 0 && (
             <div className={styles.loadStatus}>Beginning of roll history.</div>
           )}
         </>
+      )}
+      {filteredRolls.length === 0 && (
+        <div className={styles.loadStatus}>No rolls matched your search.</div>
       )}
     </div>
   );
